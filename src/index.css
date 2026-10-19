@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #070707;
+  --color-gold: #f5b700;
+  --color-bone: #f4f1e8;
+  --font-display: "Anton", sans-serif;
+  --font-sans: "Inter", sans-serif;
+  --animate-tape: tape 24s linear infinite;
+  @keyframes tape {
+    to { transform: translateX(-50%); }
+  }
+}
+
+html, body { background: #070707; margin: 0; }

@@ -1,7 +1,5 @@
-import "./App.css";
+import Hero from "./components/Hero";
 
-function App() {
-  return <h1>Biruk Solomon</h1>;
+export default function App() {
+  return <Hero />;
 }
-
-export default App;
