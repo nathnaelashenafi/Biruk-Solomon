@@ -85,7 +85,7 @@ export default function Hero() {
             <span className="absolute -bottom-1 -left-1 h-4 w-4 border-b-2 border-l-2 border-gold" />
             <span className="absolute -bottom-1 -right-1 h-4 w-4 border-b-2 border-r-2 border-gold" />
             <img
-              src="/biruk.png"
+              src={`${import.meta.env.BASE_URL}biruk.png`}
               alt="Biruk Solomon"
               decoding="async"
               fetchPriority="high"
