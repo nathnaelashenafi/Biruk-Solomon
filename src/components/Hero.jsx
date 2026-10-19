@@ -1,17 +1,40 @@
-import ReelScene from "./ReelScene";
+import { lazy, Suspense, useEffect, useState } from "react";
 import TapeMarquee from "./TapeMarquee";
 
-const links = ["Work", "Services", "Showreel", "About"];
+const ReelScene = lazy(() => import("./ReelScene"));
+
+const links = ["Work", "Services", "Grading", "About"];
+
+function canUse3D() {
+  try {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches)
+      return false;
+    const c = document.createElement("canvas");
+    const gl = c.getContext("webgl2") || c.getContext("webgl");
+    if (!gl) return false;
+    gl.getExtension("WEBGL_lose_context")?.loseContext();
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 export default function Hero() {
+  const [show3D] = useState(canUse3D);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), 150);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
-    <section className="relative min-h-screen overflow-hidden bg-ink font-sans text-bone">
-      {/* glow */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[640px] w-[640px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gold/15 blur-[120px]" />
+    <section className="relative flex h-svh flex-col overflow-hidden bg-ink font-sans text-bone">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_55%,rgba(245,183,0,0.16),transparent_55%)]" />
 
       {/* nav */}
-      <header className="relative z-40 flex items-center justify-between px-[5vw] py-7">
-        <div className="font-display text-xl tracking-[0.14em]">
+      <header className="relative z-40 flex shrink-0 items-center justify-between px-[5vw] py-4 sm:py-6">
+        <div className="font-display text-lg tracking-[0.14em] sm:text-xl">
           BROOK<span className="text-gold">Y</span>
         </div>
         <nav className="hidden gap-10 text-xs uppercase tracking-[0.18em] text-bone/60 md:flex">
@@ -27,67 +50,77 @@ export default function Hero() {
         </nav>
         <a
           href="#contact"
-          className="bg-bone px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-gold"
+          className="bg-bone px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-gold sm:px-5 sm:py-2.5 sm:text-xs"
         >
           Let's Talk
         </a>
       </header>
 
       {/* giant outlined word */}
-      <span className="pointer-events-none absolute left-1/2 top-[9%] -translate-x-1/2 select-none font-display text-[clamp(150px,26vw,420px)] leading-none text-transparent [-webkit-text-stroke:1.5px_rgba(245,183,0,0.4)]">
+      <span className="pointer-events-none absolute left-1/2 top-[12%] z-0 -translate-x-1/2 select-none font-display text-[length:min(30vw,34svh)] leading-none text-transparent [-webkit-text-stroke:1.5px_rgba(245,183,0,0.4)] lg:top-[7%] lg:text-[length:min(26vw,38svh)]">
         EDITOR
       </span>
 
-      {/* name */}
-      <div className="absolute left-[5vw] top-[36%] z-20">
-        <p className="mb-3 text-sm font-semibold uppercase tracking-[0.28em] text-gold">
-          Video Editor / Videographer
-        </p>
-        <h1 className="font-display text-[clamp(56px,11vw,170px)] uppercase leading-[0.85] text-white">
-          Biruk
-        </h1>
+      {/* name: sits at the TOP on phones/tablets, split left/right on desktop */}
+      <div className="pointer-events-none relative z-20 flex shrink-0 flex-col items-center px-[5vw] pt-1 text-center lg:absolute lg:inset-x-[5vw] lg:top-[32%] lg:flex-row lg:items-start lg:justify-between lg:p-0 lg:text-left">
+        <div>
+          <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.26em] text-gold sm:text-sm">
+            Video Editor / Videographer
+          </p>
+          <h1 className="font-display text-[length:min(18vw,10svh)] uppercase leading-[0.85] text-white lg:text-[length:min(10vw,15svh)]">
+            Biruk
+          </h1>
+        </div>
+        <h2 className="font-display text-[length:min(18vw,10svh)] uppercase leading-[0.85] text-transparent [-webkit-text-stroke:2px_#F4F1E8] lg:mt-[9svh] lg:text-[length:min(10vw,15svh)]">
+          Solomon
+        </h2>
       </div>
-      <h2 className="absolute right-[5vw] top-[44%] z-20 font-display text-[clamp(56px,11vw,170px)] uppercase leading-[0.85] text-transparent [-webkit-text-stroke:2px_#F4F1E8]">
-        Solomon
-      </h2>
 
-      {/* centered portrait */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center pb-44 pt-24">
-        <div className="relative aspect-[3/4] w-[min(72vw,360px)] border border-gold/80">
-          <span className="absolute -left-1 -top-1 h-4 w-4 border-l-2 border-t-2 border-gold" />
-          <span className="absolute -right-1 -top-1 h-4 w-4 border-r-2 border-t-2 border-gold" />
-          <span className="absolute -bottom-1 -left-1 h-4 w-4 border-b-2 border-l-2 border-gold" />
-          <span className="absolute -bottom-1 -right-1 h-4 w-4 border-b-2 border-r-2 border-gold" />
-          <img
-            src="/biruk.png"
-            alt="Biruk Solomon"
-            className="absolute bottom-0 left-1/2 h-[96%] -translate-x-1/2 object-contain"
-          />
+      {/* portrait fills the free space; always large, never scrolls */}
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col items-center pb-28 pt-3 sm:pb-32">
+        <div className="flex min-h-0 w-full flex-1 justify-center">
+          <div className="relative aspect-[3/4] h-full max-h-[580px] max-w-[78vw] border border-gold/80">
+            <span className="absolute -left-1 -top-1 h-4 w-4 border-l-2 border-t-2 border-gold" />
+            <span className="absolute -right-1 -top-1 h-4 w-4 border-r-2 border-t-2 border-gold" />
+            <span className="absolute -bottom-1 -left-1 h-4 w-4 border-b-2 border-l-2 border-gold" />
+            <span className="absolute -bottom-1 -right-1 h-4 w-4 border-b-2 border-r-2 border-gold" />
+            <img
+              src="/biruk.png"
+              alt="Biruk Solomon"
+              decoding="async"
+              fetchPriority="high"
+              className="absolute bottom-0 left-1/2 h-[96%] -translate-x-1/2 object-contain"
+            />
+
+            {/* 3D reel: bottom-left corner of the photo */}
+            {show3D && ready && (
+              <div className="pointer-events-none absolute -bottom-6 -left-8 z-20 h-36 w-36 sm:-bottom-8 sm:-left-14 sm:h-52 sm:w-52 lg:-bottom-12 lg:-left-24 lg:h-72 lg:w-72">
+                <Suspense fallback={null}>
+                  <ReelScene />
+                </Suspense>
+              </div>
+            )}
+          </div>
         </div>
 
-        <p className="mt-8 max-w-sm text-center text-sm text-bone/60">
+        <p className="mt-6 hidden max-w-sm shrink-0 px-6 text-center text-sm text-bone/60 [@media(min-height:740px)]:block">
           Turning raw footage into stories you can't stop watching.
         </p>
-        <div className="mt-5 flex gap-3">
+        <div className="mt-7 flex shrink-0 flex-wrap justify-center gap-3 px-4 [@media(min-height:740px)]:mt-5">
           <a
-            href="#showreel"
-            className="bg-gold px-7 py-3.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:-translate-y-0.5 hover:bg-bone"
+            href="#grading"
+            className="bg-gold px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-black transition hover:-translate-y-0.5 hover:bg-bone sm:px-7 sm:py-3.5 sm:text-xs"
           >
-            Watch Showreel
+            Color Gradings
           </a>
           <a
             href="#work"
-            className="border border-bone/30 px-7 py-3.5 text-xs font-semibold uppercase tracking-[0.16em] transition hover:border-gold hover:text-gold"
+            className="border border-bone/30 px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.16em] transition hover:border-gold hover:text-gold sm:px-7 sm:py-3.5 sm:text-xs"
           >
             View Work
           </a>
         </div>
-      </div>
-
-      {/* 3D reel (replaces the camera) */}
-      <div className="pointer-events-none absolute bottom-24 right-0 z-20 h-[45%] w-[55%] md:bottom-28 md:h-[52%] md:w-[38%]">
-        <ReelScene />
-      </div>
+      </main>
 
       <TapeMarquee />
     </section>
