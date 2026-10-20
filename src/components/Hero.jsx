@@ -92,9 +92,9 @@ export default function Hero() {
               className="absolute bottom-0 left-1/2 h-[96%] -translate-x-1/2 object-contain"
             />
 
-            {/* 3D reel: bottom-left corner of the photo */}
+            {/* 3D reel: bottom-right corner of the photo */}
             {show3D && ready && (
-              <div className="pointer-events-none absolute -bottom-6 -left-8 z-20 h-36 w-36 sm:-bottom-8 sm:-left-14 sm:h-52 sm:w-52 lg:-bottom-12 lg:-left-24 lg:h-72 lg:w-72">
+              <div className="pointer-events-none absolute -bottom-5 -right-6 z-20 h-28 w-28 sm:-bottom-6 sm:-right-10 sm:h-36 sm:w-36 lg:-bottom-8 lg:-right-16 lg:h-52 lg:w-52">
                 <Suspense fallback={null}>
                   <ReelScene />
                 </Suspense>

@@ -58,7 +58,7 @@ function Reel() {
     const { x, y } = mouse.current;
     group.current.rotation.y = THREE.MathUtils.damp(
       group.current.rotation.y,
-      x * 0.9 + 0.35,
+      x * 0.9 - 0.35,
       4,
       dt,
     );
