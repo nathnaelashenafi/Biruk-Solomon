@@ -8,8 +8,28 @@
   --font-sans: "Inter", sans-serif;
   --animate-tape: tape 24s linear infinite;
   @keyframes tape {
-    to { transform: translateX(-50%); }
+    to {
+      transform: translateX(-50%);
+    }
   }
 }
 
-html, body { background: #070707; margin: 0; }
+html,
+body {
+  background: #070707;
+  margin: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+  dialog[open] {
+    animation: dialog-in 0.25s ease-out;
+  }
+}
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
