@@ -1,1 +1,1 @@
-biruk solomons portfolio
+biruk solomons portfolio premium
