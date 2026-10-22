@@ -1,394 +1,506 @@
 import Reveal from "./work/Reveal";
-import { FOCUS, pad } from "./work/ui";
+import { pad } from "./work/ui";
 import { asset } from "../lib/media";
 
 // ─────────────────────────────────────────────────────────────
 // SERVICES DATA
-// image : file in /public (e.g. "services/videography.webp") or an https URL.
-//         Leave null to keep the built-in artwork. 1600×900 WebP works best.
-// Capabilities are described as things a project CAN include, not guarantees.
+// image : optional. File in /public (e.g. "services/videography.webp") or an https URL.
+//         Use a portrait photo (about 900×1200). When set, the photo replaces the
+//         built-in artwork. Leave null to keep the artwork (no empty space either way).
+// art   : which built-in artwork to show when there is no image.
 // ─────────────────────────────────────────────────────────────
 const SERVICES = [
   {
     id: "editing",
     title: "Video Editing",
-    tag: "Sequence",
-    art: "timeline",
     description:
       "Shaping raw footage into focused, compelling stories through rhythm, pacing, and precise editing.",
-    capabilities: [
-      "Storytelling and narrative structure",
-      "Footage selection and assembly",
-      "Editing rhythm and pacing",
-      "Transitions and visual continuity",
-      "Revisions and final delivery",
-    ],
+    art: "timeline",
     image: null,
     imageAlt: "",
   },
   {
     id: "grading",
     title: "Color Grading",
-    tag: "Tonal range",
-    art: "grade",
     description:
       "Creating atmosphere and visual consistency through considered color, contrast, and tone.",
-    capabilities: [
-      "Developing a visual mood",
-      "Refining color and contrast",
-      "Consistency between shots",
-      "A cohesive visual finish",
-    ],
-    link: { label: "Explore Color Grading", href: "#grading" },
+    art: "wheel",
     image: null,
     imageAlt: "",
   },
   {
     id: "sound",
     title: "Sound Design",
-    tag: "Waveform",
-    art: "wave",
     description:
       "Building a richer viewing experience through thoughtful sound, atmosphere, and audio detail.",
-    capabilities: [
-      "Sound effects and ambience",
-      "Audio layering",
-      "Sound selection and synchronization",
-      "Supporting the emotional rhythm of a scene",
-      "Audio refinement for the final edit",
-    ],
+    art: "wave",
     image: null,
     imageAlt: "",
   },
   {
     id: "videography",
     title: "Videography",
-    tag: "Viewfinder",
-    art: "finder",
     description:
       "Capturing real moments and carefully composed visuals with a clear creative direction.",
-    capabilities: [
-      "Camera work and visual composition",
-      "Capturing footage for a project",
-      "Planning shots around a creative concept",
-    ],
+    art: "viewfinder",
     image: null,
     imageAlt: "",
   },
   {
     id: "consulting",
     title: "Content Consulting",
-    tag: "Storyboard",
-    art: "board",
     description:
       "Helping shape the idea, direction, and visual approach behind content before production begins.",
-    capabilities: [
-      "Developing an initial creative direction",
-      "Clarifying the purpose and audience of a video",
-      "Planning the visual approach",
-      "Shaping ideas into a practical concept",
-    ],
+    art: "storyboard",
     image: null,
     imageAlt: "",
   },
 ];
 
-/* ───────── built-in artwork (decorative, palette only) ───────── */
+// ─────────────────────────────────────────────────────────────
+// ARTWORK: simple line illustrations that fill the middle of each card.
+// They use currentColor, so the card controls the color (bone → gold on hover).
+// ─────────────────────────────────────────────────────────────
+const G = "#F5B700";
 
-function TimelineArt() {
+function Timeline() {
+  // [x, width] clips per track
   const tracks = [
-    { y: 24, clips: [[8, 34, 1], [44, 22, 0], [68, 40, 0], [110, 36, 1]] },
-    { y: 44, clips: [[8, 20, 0], [30, 44, 1], [76, 26, 0], [104, 44, 0]] },
-    { y: 64, clips: [[8, 52, 0], [62, 30, 0], [94, 56, 1]] },
+    [
+      [8, 52],
+      [66, 34],
+      [106, 62],
+      [174, 18],
+    ],
+    [
+      [8, 24],
+      [38, 70],
+      [114, 40],
+      [160, 32],
+    ],
+    [
+      [20, 60],
+      [86, 28],
+      [120, 72],
+    ],
   ];
   return (
-    <svg viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
-      {Array.from({ length: 20 }, (_, i) => (
-        <line
-          key={i}
-          x1={8 + i * 8}
-          x2={8 + i * 8}
-          y1={8}
-          y2={i % 5 === 0 ? 16 : 12}
-          stroke="#F4F1E8"
-          strokeOpacity=".35"
-          strokeWidth=".5"
-        />
-      ))}
-      {tracks.map((t) =>
-        t.clips.map(([x, w, hot]) => (
+    <>
+      {tracks.map((clips, t) =>
+        clips.map(([x, w], i) => (
           <rect
-            key={`${t.y}-${x}`}
+            key={`${t}-${i}`}
             x={x}
-            y={t.y}
+            y={26 + t * 34}
             width={w}
-            height={14}
-            fill={hot ? "#F5B700" : "#F4F1E8"}
-            fillOpacity={hot ? 1 : 0.16}
+            height={24}
+            fill="currentColor"
+            fillOpacity={0.08}
+            stroke="currentColor"
+            strokeOpacity={0.5}
           />
         )),
       )}
-      <line x1="92" x2="92" y1="6" y2="84" stroke="#F5B700" strokeWidth=".8" />
-      <path d="M88 4h8l-4 6z" fill="#F5B700" />
-    </svg>
-  );
-}
-
-function GradeArt() {
-  const bands = ["#070707", "#2a2106", "#6b5004", "#b58700", "#F5B700", "#f2dc94", "#F4F1E8"];
-  return (
-    <>
-      <div className="absolute inset-0 flex">
-        {bands.map((c) => (
-          <div key={c} className="flex-1" style={{ background: c }} />
-        ))}
-      </div>
-      <svg
-        viewBox="0 0 100 100"
-        preserveAspectRatio="none"
-        className="absolute inset-0 h-full w-full mix-blend-difference"
-      >
-        <path
-          d="M0 92 C 30 90, 45 70, 55 48 S 85 12, 100 8"
-          fill="none"
-          stroke="#F4F1E8"
-          strokeWidth="2"
-          vectorEffect="non-scaling-stroke"
+      <line
+        x1="8"
+        y1="14"
+        x2="192"
+        y2="14"
+        stroke="currentColor"
+        strokeOpacity="0.4"
+      />
+      {[8, 38, 68, 98, 128, 158, 188].map((x) => (
+        <line
+          key={x}
+          x1={x}
+          y1="10"
+          x2={x}
+          y2="14"
+          stroke="currentColor"
+          strokeOpacity="0.4"
         />
-      </svg>
+      ))}
+      <line x1="104" y1="6" x2="104" y2="134" stroke={G} strokeWidth="1.5" />
+      <path d="M98 2h12l-6 9z" fill={G} />
     </>
   );
 }
 
-function WaveArt() {
-  const bars = Array.from({ length: 70 }, (_, i) => {
-    const v = Math.abs(Math.sin(i * 0.55) * 0.55 + Math.sin(i * 1.7) * 0.3 + Math.sin(i * 0.17) * 0.25);
-    return Math.max(0.08, Math.min(1, v));
-  });
+function Wheel() {
   return (
-    <svg viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" className="h-full w-full">
-      <line x1="0" x2="160" y1="45" y2="45" stroke="#F4F1E8" strokeOpacity=".15" strokeWidth=".3" />
-      {bars.map((v, i) => {
-        const hot = i >= 32 && i <= 44;
-        return (
+    <>
+      <defs>
+        <linearGradient id="svc-tone" x1="0" x2="1">
+          <stop offset="0" stopColor="#000" />
+          <stop offset="0.6" stopColor="#F4F1E8" />
+          <stop offset="1" stopColor={G} />
+        </linearGradient>
+      </defs>
+      <circle
+        cx="100"
+        cy="58"
+        r="46"
+        fill="none"
+        stroke="currentColor"
+        strokeOpacity="0.5"
+      />
+      <circle
+        cx="100"
+        cy="58"
+        r="32"
+        fill="none"
+        stroke="currentColor"
+        strokeOpacity="0.3"
+      />
+      <circle
+        cx="100"
+        cy="58"
+        r="18"
+        fill="none"
+        stroke="currentColor"
+        strokeOpacity="0.2"
+      />
+      <line
+        x1="54"
+        y1="58"
+        x2="146"
+        y2="58"
+        stroke="currentColor"
+        strokeOpacity="0.25"
+      />
+      <line
+        x1="100"
+        y1="12"
+        x2="100"
+        y2="104"
+        stroke="currentColor"
+        strokeOpacity="0.25"
+      />
+      <circle cx="119" cy="42" r="6" fill={G} />
+      <rect x="14" y="120" width="172" height="10" fill="url(#svc-tone)" />
+      <rect
+        x="14"
+        y="120"
+        width="172"
+        height="10"
+        fill="none"
+        stroke="currentColor"
+        strokeOpacity="0.4"
+      />
+      <path d="M126 114l4 6h-8z" fill={G} />
+    </>
+  );
+}
+
+function Wave() {
+  const h = [
+    14, 30, 52, 22, 64, 40, 76, 34, 58, 20, 46, 70, 28, 54, 18, 38, 62, 24, 44,
+    16,
+  ];
+  return (
+    <>
+      {h.map((v, i) => (
+        <rect
+          key={i}
+          x={12 + i * 9}
+          y={66 - v / 2}
+          width="4"
+          height={v}
+          fill={i === 6 ? G : "currentColor"}
+          fillOpacity={i === 6 ? 1 : 0.55}
+        />
+      ))}
+      <line
+        x1="8"
+        y1="66"
+        x2="192"
+        y2="66"
+        stroke="currentColor"
+        strokeOpacity="0.25"
+      />
+      <line
+        x1="75"
+        y1="6"
+        x2="75"
+        y2="126"
+        stroke={G}
+        strokeWidth="1"
+        strokeDasharray="3 3"
+      />
+    </>
+  );
+}
+
+function Viewfinder() {
+  const c = 18;
+  const corner = (x, y, dx, dy) => (
+    <path
+      d={`M${x} ${y + dy * c}V${y}H${x + dx * c}`}
+      fill="none"
+      stroke="currentColor"
+      strokeOpacity="0.8"
+      strokeWidth="2"
+    />
+  );
+  return (
+    <>
+      {corner(14, 8, 1, 1)}
+      {corner(186, 8, -1, 1)}
+      {corner(14, 124, 1, -1)}
+      {corner(186, 124, -1, -1)}
+      {[72, 128].map((x) => (
+        <line
+          key={x}
+          x1={x}
+          y1="8"
+          x2={x}
+          y2="124"
+          stroke="currentColor"
+          strokeOpacity="0.15"
+        />
+      ))}
+      {[52, 80].map((y) => (
+        <line
+          key={y}
+          x1="14"
+          y1={y}
+          x2="186"
+          y2={y}
+          stroke="currentColor"
+          strokeOpacity="0.15"
+        />
+      ))}
+      <rect
+        x="82"
+        y="46"
+        width="36"
+        height="40"
+        fill="none"
+        stroke={G}
+        strokeWidth="1.5"
+      />
+      <line x1="100" y1="60" x2="100" y2="72" stroke={G} />
+      <line x1="94" y1="66" x2="106" y2="66" stroke={G} />
+      <circle cx="30" cy="22" r="3.5" fill={G} />
+      <rect
+        x="40"
+        y="19"
+        width="22"
+        height="6"
+        fill="currentColor"
+        fillOpacity="0.5"
+      />
+    </>
+  );
+}
+
+function Storyboard() {
+  return (
+    <>
+      {[0, 1, 2].map((i) => (
+        <g key={i}>
           <rect
-            key={i}
-            x={4 + i * 2.2}
-            y={45 - v * 34}
-            width="1.3"
-            height={v * 68}
-            fill={hot ? "#F5B700" : "#F4F1E8"}
-            fillOpacity={hot ? 1 : 0.35}
+            x={10 + i * 62}
+            y="22"
+            width="52"
+            height="38"
+            fill="currentColor"
+            fillOpacity="0.06"
+            stroke="currentColor"
+            strokeOpacity="0.55"
           />
-        );
-      })}
+          <line
+            x1={14 + i * 62}
+            y1="68"
+            x2={46 + i * 62}
+            y2="68"
+            stroke="currentColor"
+            strokeOpacity="0.4"
+          />
+          <line
+            x1={14 + i * 62}
+            y1="75"
+            x2={34 + i * 62}
+            y2="75"
+            stroke="currentColor"
+            strokeOpacity="0.25"
+          />
+        </g>
+      ))}
+      <path
+        d="M16 54l12-16 10 10 8-6 10 12z"
+        fill="currentColor"
+        fillOpacity="0.25"
+      />
+      <circle
+        cx="140"
+        cy="36"
+        r="6"
+        fill="none"
+        stroke="currentColor"
+        strokeOpacity="0.6"
+      />
+      <path
+        d="M72 46q12-18 24 0t24 0"
+        fill="none"
+        stroke={G}
+        strokeWidth="1.5"
+      />
+      <path d="M60 41h0M122 41h0" stroke={G} />
+      <path
+        d="M10 104h180"
+        stroke="currentColor"
+        strokeOpacity="0.2"
+        strokeDasharray="4 4"
+      />
+      <path d="M10 104h60" stroke={G} strokeWidth="2" />
+      <circle cx="70" cy="104" r="4" fill={G} />
+    </>
+  );
+}
+
+const ART = {
+  timeline: Timeline,
+  wheel: Wheel,
+  wave: Wave,
+  viewfinder: Viewfinder,
+  storyboard: Storyboard,
+};
+
+function Artwork({ name }) {
+  const Art = ART[name];
+  if (!Art) return null;
+  return (
+    <svg
+      viewBox="0 0 200 136"
+      aria-hidden="true"
+      focusable="false"
+      preserveAspectRatio="xMidYMid meet"
+      className="h-full w-full max-h-[11rem] text-bone/70 transition-colors duration-300 group-hover:text-gold motion-reduce:transition-none"
+    >
+      <Art />
     </svg>
   );
 }
 
-function FinderArt() {
-  return (
-    <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_55%,rgba(245,183,0,0.12),transparent_60%)]">
-      {["left-1/3", "left-2/3"].map((p) => (
-        <span key={p} className={`absolute inset-y-0 w-px bg-bone/15 ${p}`} />
-      ))}
-      {["top-1/3", "top-2/3"].map((p) => (
-        <span key={p} className={`absolute inset-x-0 h-px bg-bone/15 ${p}`} />
-      ))}
-      {[
-        "left-4 top-4 border-l-2 border-t-2",
-        "right-4 top-4 border-r-2 border-t-2",
-        "bottom-4 left-4 border-b-2 border-l-2",
-        "bottom-4 right-4 border-b-2 border-r-2",
-      ].map((c) => (
-        <span key={c} className={`absolute h-6 w-6 border-gold ${c}`} />
-      ))}
-      <span className="absolute left-1/2 top-1/2 h-14 w-20 -translate-x-1/2 -translate-y-1/2 border border-gold/70" />
-      <span className="absolute bottom-8 left-8 flex items-center gap-2 text-[11px] font-semibold tracking-[0.2em] text-bone/70">
-        <i className="h-2 w-2 rounded-full bg-gold" />
-        REC
-      </span>
-      <span className="absolute bottom-8 right-8 text-[11px] tracking-[0.2em] text-bone/50">
-        00:00:00:00
-      </span>
-    </div>
-  );
-}
-
-function BoardArt() {
-  const frames = [
-    <circle key="a" cx="8" cy="4.5" r="2.2" />,
-    <path key="b" d="M1 8 L15 1" />,
-    <rect key="c" x="3" y="5" width="10" height="3" />,
-  ];
-  return (
-    <div className="absolute inset-0 grid grid-cols-3 content-center gap-3 p-5 sm:gap-5 sm:p-8">
-      {frames.map((shape, i) => (
-        <div key={i}>
-          <div className="relative aspect-video border border-bone/30">
-            <svg
-              viewBox="0 0 16 9"
-              className="h-full w-full"
-              fill="none"
-              stroke="#F4F1E8"
-              strokeOpacity=".6"
-              strokeWidth=".35"
-            >
-              {shape}
-            </svg>
-            <span className="absolute left-2 top-1 font-display text-sm text-gold">{pad(i + 1)}</span>
-          </div>
-          <div className="mt-3 space-y-1.5">
-            <span className="block h-1 w-4/5 bg-bone/20" />
-            <span className="block h-1 w-3/5 bg-bone/10" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const ARTS = { timeline: TimelineArt, grade: GradeArt, wave: WaveArt, finder: FinderArt, board: BoardArt };
-
-/* ───────── layout ───────── */
-
-function Visual({ service }) {
-  const Art = ARTS[service.art];
+// ─────────────────────────────────────────────────────────────
+// CARD
+// ─────────────────────────────────────────────────────────────
+function ServiceCard({ service, index }) {
   const src = asset(service.image);
-  return (
-    <div className="relative aspect-video w-full overflow-hidden border border-bone/15 bg-[#0d0d0d]">
-      {src ? (
-        <img
-          src={src}
-          alt={service.imageAlt || `${service.title} — visual`}
-          width={1600}
-          height={900}
-          loading="lazy"
-          decoding="async"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
-      ) : (
-        <div aria-hidden="true" className="absolute inset-0">
-          <Art />
-        </div>
-      )}
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute right-4 top-3 text-[10px] font-semibold uppercase tracking-[0.28em] text-gold"
-      >
-        {service.tag}
-      </span>
-    </div>
-  );
-}
 
-function ServiceRow({ service, index }) {
-  const flip = index % 2 === 1;
   return (
-    <Reveal>
+    <li
+      className="
+        w-[78%] shrink-0 snap-start
+        sm:w-[46%] md:w-[32%] lg:w-[24%]
+        xl:w-auto
+      "
+    >
       <article
         aria-labelledby={`service-${service.id}`}
-        className="grid gap-8 border-t border-bone/10 py-14 lg:grid-cols-12 lg:items-center lg:gap-14 lg:py-20"
+        className="group relative flex aspect-[3/4] min-h-[24rem] flex-col overflow-hidden border border-bone/15 bg-[#0d0d0d] p-5 transition-colors duration-300 hover:border-gold/60 motion-reduce:transition-none sm:p-6 xl:min-h-0"
       >
-        <div className={`lg:col-span-5 ${flip ? "lg:order-2" : ""}`}>
-          <div className="flex items-center gap-4">
-            <span aria-hidden="true" className="font-display text-xl text-gold">
-              {pad(index + 1)}
-            </span>
-            <span aria-hidden="true" className="h-px flex-1 bg-bone/15" />
-          </div>
+        {/* soft gold glow so the card never reads as flat black */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_38%,rgba(245,183,0,0.10),transparent_62%)]"
+        />
+
+        {src && (
+          <>
+            <img
+              src={src}
+              alt={service.imageAlt || service.title}
+              width={900}
+              height={1200}
+              loading="lazy"
+              decoding="async"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            />
+            <span className="absolute inset-0 bg-linear-to-t from-ink via-ink/70 to-transparent" />
+          </>
+        )}
+
+        {/* number */}
+        <span
+          aria-hidden="true"
+          className={`relative font-display leading-none ${
+            src
+              ? "text-xl text-gold"
+              : "text-5xl text-transparent [-webkit-text-stroke:1px_rgba(244,241,232,0.35)] sm:text-6xl"
+          }`}
+        >
+          {pad(index + 1)}
+        </span>
+
+        {/* artwork fills the middle (hidden when a photo is used) */}
+        <div className="relative my-4 flex min-h-0 flex-1 items-center justify-center">
+          {!src && <Artwork name={service.art} />}
+        </div>
+
+        {/* text */}
+        <div className="relative">
+          <span className="mb-4 block h-px w-10 bg-gold" aria-hidden="true" />
           <h3
             id={`service-${service.id}`}
-            className="mt-5 font-display text-[length:clamp(44px,6.4vw,104px)] uppercase leading-[0.9]"
+            className="font-display text-[length:clamp(24px,2.4vw,30px)] uppercase leading-none"
           >
             {service.title}
           </h3>
-          <p className="mt-6 max-w-md text-base leading-relaxed text-bone/70">{service.description}</p>
-          <p className="mt-8 text-[10px] font-semibold uppercase tracking-[0.28em] text-bone/45">
-            Can include
+          <p className="mt-3 text-sm leading-relaxed text-bone/70">
+            {service.description}
           </p>
-          <ul className="mt-3 grid gap-2 text-sm text-bone/65">
-            {service.capabilities.map((c) => (
-              <li key={c} className="flex items-start gap-3">
-                <span aria-hidden="true" className="mt-2.5 h-px w-4 shrink-0 bg-gold" />
-                {c}
-              </li>
-            ))}
-          </ul>
-          {service.link && (
-            <a
-              href={service.link.href}
-              className={`mt-8 inline-flex items-center gap-3 border-b border-gold py-2 text-xs font-semibold uppercase tracking-[0.16em] transition hover:text-gold ${FOCUS}`}
-            >
-              {service.link.label} <span aria-hidden="true">→</span>
-            </a>
-          )}
-        </div>
-        <div className={`lg:col-span-7 ${flip ? "lg:order-1" : ""}`}>
-          <Visual service={service} />
         </div>
       </article>
-    </Reveal>
+    </li>
   );
 }
 
+// ─────────────────────────────────────────────────────────────
+// SECTION
+// ─────────────────────────────────────────────────────────────
 export default function Services() {
   return (
     <section
       id="services"
       aria-labelledby="services-heading"
-      className="relative bg-ink px-[5vw] pb-24 pt-8 font-sans text-bone sm:pb-32 lg:pb-40"
+      className="relative bg-ink px-[5vw] py-16 font-sans text-bone sm:py-20 lg:py-28"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-gold/0 via-gold/50 to-gold/0" />
 
-      <Reveal className="grid gap-10 pb-16 pt-16 lg:grid-cols-12 lg:items-end lg:pb-24 lg:pt-24">
-        <div className="lg:col-span-8">
-          <p className="mb-6 flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.3em] text-gold">
-            <span className="h-px w-12 bg-gold" />
-            Services / 03
-          </p>
-          <h2
-            id="services-heading"
-            className="font-display text-[length:clamp(52px,10vw,160px)] uppercase leading-[0.88]"
-          >
-            <span className="block">More than</span>
-            <span className="block text-transparent [-webkit-text-stroke:2px_#F4F1E8]">
-              the final cut.
-            </span>
-          </h2>
-        </div>
-        <p className="max-w-sm text-base leading-relaxed text-bone/65 lg:col-span-4 lg:pb-3">
-          Visual storytelling, post-production, and creative direction, brought together to shape a
-          video project from the first idea to the finished film.
-        </p>
-      </Reveal>
-
-      <div>
-        {SERVICES.map((s, i) => (
-          <ServiceRow key={s.id} service={s} index={i} />
-        ))}
-      </div>
-
-      <Reveal className="border-t border-bone/10 pt-16 lg:pt-20">
-        <div className="flex flex-col items-start justify-between gap-10 lg:flex-row lg:items-end">
-          <p className="max-w-3xl font-display text-[length:clamp(34px,6vw,96px)] uppercase leading-[0.95]">
-            Bring the idea. <span className="text-gold">Shape the story together.</span>
-          </p>
-          <div className="flex shrink-0 flex-wrap items-center gap-x-8 gap-y-4">
-            <a
-              href="#contact"
-              className={`inline-flex bg-gold px-8 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:-translate-y-0.5 hover:bg-bone motion-reduce:hover:translate-y-0 ${FOCUS}`}
+      <Reveal>
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-gold">
+              Services / 03
+            </p>
+            <h2
+              id="services-heading"
+              className="font-display text-[length:clamp(36px,6vw,80px)] uppercase leading-none"
             >
-              Start a Project
-            </a>
-            <a
-              href="#work"
-              className={`border-b border-bone/30 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition hover:border-gold hover:text-gold ${FOCUS}`}
-            >
-              View Selected Work
-            </a>
+              Services
+            </h2>
           </div>
+          <p className="max-w-sm text-sm leading-relaxed text-bone/65 sm:text-base">
+            From the first idea to the final export, everything your film needs
+            under one roof.
+          </p>
         </div>
+
+        <ul
+          tabIndex={0}
+          aria-label="Services, scroll sideways for more"
+          className="-mx-[5vw] mt-10 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-px-[5vw] px-[5vw] pb-3 [scrollbar-width:none] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold xl:mx-0 xl:grid xl:grid-cols-5 xl:gap-5 xl:overflow-visible xl:px-0 xl:pb-0 [&::-webkit-scrollbar]:hidden"
+        >
+          {SERVICES.map((s, i) => (
+            <ServiceCard key={s.id} service={s} index={i} />
+          ))}
+        </ul>
+
+        <p className="mt-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-bone/45 xl:hidden">
+          Swipe to see all {SERVICES.length}
+        </p>
       </Reveal>
     </section>
   );
