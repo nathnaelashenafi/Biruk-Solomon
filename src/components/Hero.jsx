@@ -77,9 +77,9 @@ export default function Hero() {
       </div>
 
       {/* portrait fills the free space; always large, never scrolls */}
-      <main className="relative z-10 flex min-h-0 flex-1 flex-col items-center pb-28 pt-3 sm:pb-32">
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col items-center pb-3 pt-3 sm:pb-4">
         <div className="flex min-h-0 w-full flex-1 justify-center">
-          <div className="relative aspect-[3/4] h-full max-h-[580px] max-w-[78vw] border border-gold/80">
+          <div className="relative aspect-[9/16] h-full max-h-[620px] max-w-[78vw] border border-gold/80">
             <span className="absolute -left-1 -top-1 h-4 w-4 border-l-2 border-t-2 border-gold" />
             <span className="absolute -right-1 -top-1 h-4 w-4 border-r-2 border-t-2 border-gold" />
             <span className="absolute -bottom-1 -left-1 h-4 w-4 border-b-2 border-l-2 border-gold" />
@@ -89,12 +89,12 @@ export default function Hero() {
               alt="Biruk Solomon"
               decoding="async"
               fetchPriority="high"
-              className="absolute bottom-0 left-1/2 h-[96%] -translate-x-1/2 object-contain"
+              className="absolute inset-0 h-full w-full object-cover object-top"
             />
 
             {/* 3D reel: bottom-right corner of the photo */}
             {show3D && ready && (
-              <div className="pointer-events-none absolute -bottom-5 -right-6 z-20 h-28 w-28 sm:-bottom-6 sm:-right-10 sm:h-36 sm:w-36 lg:-bottom-8 lg:-right-16 lg:h-52 lg:w-52">
+              <div className="pointer-events-none absolute -bottom-3 -right-4 z-20 h-24 w-24 sm:-bottom-4 sm:-right-7 sm:h-28 sm:w-28 lg:-bottom-5 lg:-right-10 lg:h-36 lg:w-36">
                 <Suspense fallback={null}>
                   <ReelScene />
                 </Suspense>
