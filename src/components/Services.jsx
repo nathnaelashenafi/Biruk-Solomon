@@ -472,9 +472,6 @@ export default function Services() {
       <Reveal>
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.3em] text-gold">
-              Services / 03
-            </p>
             <h2
               id="services-heading"
               className="font-display text-[length:clamp(36px,6vw,80px)] uppercase leading-none"

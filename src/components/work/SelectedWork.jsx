@@ -10,8 +10,14 @@ const INITIAL_VISIBLE = 4;
 // Editorial rhythm: wide, tall, tall, wide… repeats as the portfolio grows.
 const PATTERN = [
   { span: "lg:col-span-7", aspect: "aspect-video" },
-  { span: "lg:col-span-5", aspect: "aspect-[4/5] sm:aspect-video lg:aspect-[4/5]" },
-  { span: "lg:col-span-5", aspect: "aspect-[4/5] sm:aspect-video lg:aspect-[4/5]" },
+  {
+    span: "lg:col-span-5",
+    aspect: "aspect-[4/5] sm:aspect-video lg:aspect-[4/5]",
+  },
+  {
+    span: "lg:col-span-5",
+    aspect: "aspect-[4/5] sm:aspect-video lg:aspect-[4/5]",
+  },
   { span: "lg:col-span-7", aspect: "aspect-video" },
 ];
 
@@ -69,7 +75,10 @@ function ProjectCard({ project, layout, delay, onOpen }) {
           <PlayBadge />
         </button>
         <div className="mt-5 flex items-start gap-5">
-          <span aria-hidden="true" className="font-display text-3xl leading-none text-gold">
+          <span
+            aria-hidden="true"
+            className="font-display text-3xl leading-none text-gold"
+          >
             {pad(projects.indexOf(project) + 1)}
           </span>
           <div className="min-w-0 flex-1">
@@ -79,7 +88,10 @@ function ProjectCard({ project, layout, delay, onOpen }) {
             <div className="mt-2">
               <Meta project={project} />
             </div>
-            <Actions onWatch={() => onOpen(project, true)} onView={() => onOpen(project, false)} />
+            <Actions
+              onWatch={() => onOpen(project, true)}
+              onView={() => onOpen(project, false)}
+            />
           </div>
         </div>
       </article>
@@ -97,7 +109,10 @@ export default function SelectedWork() {
   const visible = showAll ? rest : rest.slice(0, INITIAL_VISIBLE);
   const activeIndex = active ? projects.indexOf(active.project) : 0;
   const goNext = () =>
-    setActive({ project: projects[(activeIndex + 1) % projects.length], autoplay: false });
+    setActive({
+      project: projects[(activeIndex + 1) % projects.length],
+      autoplay: false,
+    });
 
   return (
     <section
@@ -110,10 +125,6 @@ export default function SelectedWork() {
       {/* introduction */}
       <Reveal className="grid gap-10 lg:grid-cols-12 lg:items-end">
         <div className="lg:col-span-8">
-          <p className="mb-6 flex items-center gap-4 text-xs font-semibold uppercase tracking-[0.3em] text-gold">
-            <span className="h-px w-12 bg-gold" />
-            Selected Work / 02
-          </p>
           <h2
             id="work-heading"
             className="font-display text-[length:clamp(52px,10vw,160px)] uppercase leading-[0.88]"
@@ -126,8 +137,8 @@ export default function SelectedWork() {
         </div>
         <div className="lg:col-span-4 lg:pb-3">
           <p className="max-w-sm text-base leading-relaxed text-bone/65">
-            A collection of moving images, visual stories, and moments shaped through the lens and
-            the edit.
+            A collection of moving images, visual stories, and moments shaped
+            through the lens and the edit.
           </p>
           {realCount > 0 && (
             <p className="mt-6 font-display text-2xl tracking-wide text-gold">
@@ -213,7 +224,8 @@ export default function SelectedWork() {
       <Reveal className="mt-28 border-t border-bone/10 pt-16 lg:mt-40 lg:pt-20">
         <div className="flex flex-col items-start justify-between gap-10 lg:flex-row lg:items-end">
           <p className="max-w-3xl font-display text-[length:clamp(34px,6vw,96px)] uppercase leading-[0.95]">
-            Have a project in mind? <span className="text-gold">Let&apos;s talk.</span>
+            Have a project in mind?{" "}
+            <span className="text-gold">Let&apos;s talk.</span>
           </p>
           <a
             href="#contact"

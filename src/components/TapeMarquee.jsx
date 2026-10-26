@@ -1,5 +1,5 @@
 const APPS = [
-  "Adobe Premiere Pro",
+  "Premiere Pro",
   "After Effects",
   "DaVinci Resolve",
   "Photoshop",
