@@ -51,6 +51,7 @@ export async function notifyContact(row: any) {
   const text =
     "NEW CONTACT INQUIRY\n\n" +
     `Name: ${plain(row.name, 100)}\nEmail: ${plain(row.email, 254)}\n` +
+    (row.phone ? `Phone: ${plain(row.phone, 30)}\n` : "") +
     (row.subject ? `Subject: ${plain(row.subject, 150)}\n` : "") +
     `Received: ${when(row.created_at)}\n\nMessage:\n${plain(row.message, 3000)}`;
   try {

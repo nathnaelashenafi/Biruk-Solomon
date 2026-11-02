@@ -4,6 +4,15 @@ export const LIMITS = {
   name: 100, position: 120, company: 120, subject: 150, service: 160,
   testimonialMin: 20, testimonialMax: 1500, messageMin: 10, messageMax: 3000, email: 254,
 };
+// The contact form's "Subject" is one of these. Edit this list if his services change.
+export const SUBJECTS = [
+  "Video Editing",
+  "Color Grading",
+  "Sound Design",
+  "Videography",
+  "Content Consulting",
+  "Something else",
+];
 export const CONSENT_VERSION = "2026-11-v1";
 export const CONSENT_TEXT =
   "I agree that Biruk Solomon may publish my testimonial, name, professional role, company details, and any photo or logo I choose to provide on his portfolio website.";
@@ -36,6 +45,14 @@ function linkedin(v) {
   }
 }
 
+function phone(v) {
+  const p = oneLine(v);
+  if (!p) return { value: null };
+  if (!/^[+()\d][\d\s().+-]*$/.test(p) || p.length > 30 || p.replace(/\D/g, "").length < 6)
+    return { error: "Enter a valid phone number." };
+  return { value: p };
+}
+
 function between(value, min, max, label) {
   if (value.length < min) return min <= 1 ? `${label} is required.` : `${label} must be at least ${min} characters.`;
   if (value.length > max) return `${label} must be ${max} characters or fewer.`;
@@ -48,15 +65,19 @@ export function validateContact(input = {}) {
   const subject = oneLine(input.subject);
   const message = clean(input.message).replace(/\n{3,}/g, "\n\n");
   const mail = email(input.email);
+  const ph = phone(input.phone);
+
   const nameErr = between(name, 1, LIMITS.name, "Name");
   if (nameErr) errors.name = nameErr;
   if (!mail) errors.email = "Enter a valid email address.";
-  if (subject.length > LIMITS.subject) errors.subject = `Subject must be ${LIMITS.subject} characters or fewer.`;
+  if (ph.error) errors.phone = ph.error;
+  if (!SUBJECTS.includes(subject)) errors.subject = "Please choose a service.";
   const msgErr = between(message, LIMITS.messageMin, LIMITS.messageMax, "Message");
   if (msgErr) errors.message = msgErr;
+
   return Object.keys(errors).length
     ? { ok: false, errors }
-    : { ok: true, value: { name, email: mail, subject: subject || null, message } };
+    : { ok: true, value: { name, email: mail, phone: ph.value ?? null, subject, message } };
 }
 
 const truthy = (v) => v === true || v === "true" || v === "on";

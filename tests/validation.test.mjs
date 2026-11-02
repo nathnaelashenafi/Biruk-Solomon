@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  validateContact, validateTestimonial, validateInvitee, detectImageType, LIMITS, CONSENT_VERSION,
+  validateContact, validateTestimonial, validateInvitee, detectImageType, LIMITS, CONSENT_VERSION, SUBJECTS,
 } from "../supabase/functions/_shared/validation.js";
 
 const good = {
@@ -10,23 +10,37 @@ const good = {
 };
 
 test("contact: valid input passes and is normalised", () => {
-  const r = validateContact({ name: "  Sam  ", email: "SAM@Example.com", message: "Hello, I need a video." });
+  const r = validateContact({ name: "  Sam  ", email: "SAM@Example.com", subject: "Video Editing", message: "Hello, I need a video." });
   assert.equal(r.ok, true);
   assert.equal(r.value.name, "Sam");
   assert.equal(r.value.email, "sam@example.com");
-  assert.equal(r.value.subject, null);
+  assert.equal(r.value.subject, "Video Editing");
+  assert.equal(r.value.phone, null);
 });
-test("contact: bad email rejected", () => assert.ok(validateContact({ name: "A", email: "nope", message: "Hello there friend" }).errors.email));
+test("contact: bad email rejected", () => assert.ok(validateContact({ name: "A", email: "nope", subject: "Videography", message: "Hello there friend" }).errors.email));
 test("contact: empty and too-short message rejected", () => {
-  assert.ok(validateContact({ name: "A", email: "a@b.co", message: "" }).errors.message);
-  assert.ok(validateContact({ name: "A", email: "a@b.co", message: "hi" }).errors.message);
+  assert.ok(validateContact({ name: "A", email: "a@b.co", subject: "Videography", message: "" }).errors.message);
+  assert.ok(validateContact({ name: "A", email: "a@b.co", subject: "Videography", message: "hi" }).errors.message);
 });
 test("contact: excessively long message rejected", () =>
-  assert.ok(validateContact({ name: "A", email: "a@b.co", message: "x".repeat(LIMITS.messageMax + 1) }).errors.message));
+  assert.ok(validateContact({ name: "A", email: "a@b.co", subject: "Videography", message: "x".repeat(LIMITS.messageMax + 1) }).errors.message));
 test("contact: control characters are stripped", () => {
-  const r = validateContact({ name: "A\u0000B", email: "a@b.co", message: "Hello\u202Eworld ok ok" });
+  const r = validateContact({ name: "A\u0000B", email: "a@b.co", subject: "Videography", message: "Hello\u202Eworld ok ok" });
   assert.equal(r.value.name, "AB");
   assert.ok(!/\u202E/.test(r.value.message));
+});
+test("contact: subject must be one of the services", () => {
+  const base = { name: "A", email: "a@b.co", message: "Hello there friend" };
+  assert.ok(validateContact({ ...base, subject: "" }).errors.subject);
+  assert.ok(validateContact({ ...base, subject: "Hacking" }).errors.subject);
+  for (const s of SUBJECTS) assert.equal(validateContact({ ...base, subject: s }).ok, true);
+});
+test("contact: phone is optional but checked when given", () => {
+  const base = { name: "A", email: "a@b.co", subject: "Videography", message: "Hello there friend" };
+  assert.equal(validateContact({ ...base, phone: "" }).ok, true);
+  assert.equal(validateContact({ ...base, phone: "+251 91 234 5678" }).value.phone, "+251 91 234 5678");
+  assert.ok(validateContact({ ...base, phone: "call me maybe" }).errors.phone);
+  assert.ok(validateContact({ ...base, phone: "12" }).errors.phone);
 });
 test("testimonial: valid submission passes", () => {
   const r = validateTestimonial(good);
