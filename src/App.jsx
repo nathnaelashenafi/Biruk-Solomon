@@ -6,6 +6,7 @@ import GradingSection from "./components/GradingSection.jsx";
 import About from "./components/About";
 import Testimonials from "./components/Testimonials";
 import Contact from "./components/Contact";
+import Footer from "./components/Footer";
 import TestimonialSubmit from "./components/TestimonialSubmit";
 
 // Private invitation page lives at  #/testimonial?token=...  (no router package needed).
@@ -32,6 +33,7 @@ export default function App() {
       <About />
       <Testimonials />
       <Contact />
+      <Footer />
     </>
   );
 }
