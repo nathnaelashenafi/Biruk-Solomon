@@ -479,10 +479,6 @@ export default function Services() {
               Services
             </h2>
           </div>
-          <p className="max-w-sm text-sm leading-relaxed text-bone/65 sm:text-base">
-            From the first idea to the final export, everything your film needs
-            under one roof.
-          </p>
         </div>
 
         <ul

@@ -176,11 +176,11 @@ export default function GradingSection() {
           >
             The same frame,{" "}
             <span className="text-transparent [-webkit-text-stroke:1.5px_#F4F1E8]">
-              graded.
+              I graded.
             </span>
           </h2>
           <p className="mt-6 max-w-sm text-[15px] leading-relaxed text-bone/70">
-            Grading changes how footage feels. It shapes mood, contrast, and
+            My grading changes how footage feels. It shapes mood, contrast, and
             tone, and keeps a video looking like one piece from the first shot
             to the last.
           </p>
