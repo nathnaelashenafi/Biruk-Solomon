@@ -48,3 +48,19 @@ export function fetchApprovedTestimonials(limit = 6) {
 
 export const publicImageUrl = (path) =>
   path ? `${BASE}/storage/v1/object/public/testimonial-public/${path.split("/").map(encodeURIComponent).join("/")}` : null;
+
+// The portfolio videos, kept in Supabase and managed from the Telegram bot.
+// Reads the public view, which only contains the fields shown on the website.
+export async function fetchVideos() {
+  const cols = "id,provider,video_id,title,studio,category,thumbnail_url,orientation";
+  const rows = await request(`${BASE}/rest/v1/public_videos?select=${cols}&order=created_at.desc&limit=60`);
+  return rows.map((r) => ({
+    id: r.id,
+    title: r.title,
+    studio: r.studio,
+    category: r.category,
+    orientation: r.orientation,
+    thumb: r.thumbnail_url,
+    video: { provider: r.provider, id: r.video_id },
+  }));
+}

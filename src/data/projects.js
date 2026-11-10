@@ -10,15 +10,18 @@
 //   file       → { provider: "file", url: "https://…/film.mp4" }
 //   embed      → { provider: "embed", url: "https://…" }
 //
+// studio : the client or studio name shown on the card (leave out if unknown)
+// category : the type of video shown on the card, e.g. "Educational video", "Short-form"
+// The card shows ONLY studio and category. Title, year and description appear when the video opens.
+//
 // Add `placeholder: true` to any entry that is not a real project yet.
 // The project count in the intro only counts entries without it.
-// Only ONE project should have `featured: true`.
 // Fields left out (year, role, description) are simply not shown.
 // ─────────────────────────────────────────────────────────────
 export const projects = [
   {
     id: "learneta-time-expressions",
-    featured: true,
+    studio: "Learneta Academy",
     title: "በእንግሊዝኛ ጊዜን ለመግለጽ የግድ መጠቀም ያለባቹ!",
     category: "Long-Form Video",
     year: "2026",

@@ -1,248 +1,204 @@
-import { useState } from "react";
-import { projects } from "../../data/projects";
+import { useEffect, useRef, useState } from "react";
+import { projects as localProjects } from "../../data/projects";
+import { backendReady, fetchVideos } from "../../lib/api";
 import Reveal from "./Reveal";
-import Thumb, { PlayBadge, PlayIcon } from "./Thumb";
+import Thumb from "./Thumb";
 import VideoModal from "./VideoModal";
-import { FOCUS, pad } from "./ui";
+import { FOCUS } from "./ui";
 
-const INITIAL_VISIBLE = 4;
+// How far each card sits from the middle (in card widths) and how much it shrinks.
+const OFFSET = [0, 0.8, 1.42];
+const SCALE = [1, 0.82, 0.66];
+const clamp = (n, lo, hi) => Math.min(hi, Math.max(lo, n));
 
-// Editorial rhythm: wide, tall, tall, wide… repeats as the portfolio grows.
-const PATTERN = [
-  { span: "lg:col-span-7", aspect: "aspect-video" },
-  {
-    span: "lg:col-span-5",
-    aspect: "aspect-[4/5] sm:aspect-video lg:aspect-[4/5]",
-  },
-  {
-    span: "lg:col-span-5",
-    aspect: "aspect-[4/5] sm:aspect-video lg:aspect-[4/5]",
-  },
-  { span: "lg:col-span-7", aspect: "aspect-video" },
-];
-
-const featured = projects.find((p) => p.featured) ?? projects[0];
-const rest = projects.filter((p) => p !== featured);
-const realCount = projects.filter((p) => !p.placeholder).length;
-
-function Meta({ project }) {
-  const parts = [project.year, project.role].filter(Boolean);
+function Arrow({ dir, disabled, onClick }) {
   return (
-    <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-bone/60">
-      <span className="text-gold">{project.category}</span>
-      {parts.length > 0 && <span>{"  ·  " + parts.join("  ·  ")}</span>}
-    </p>
-  );
-}
-
-function Actions({ onWatch, onView, solid = false }) {
-  return (
-    <div className="mt-5 flex flex-wrap items-center gap-x-7 gap-y-3">
-      <button
-        type="button"
-        onClick={onWatch}
-        className={
-          solid
-            ? `inline-flex items-center gap-3 bg-gold px-6 py-3.5 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-bone ${FOCUS}`
-            : `inline-flex items-center gap-2.5 py-2 text-xs font-semibold uppercase tracking-[0.16em] text-gold transition hover:text-bone ${FOCUS}`
-        }
-      >
-        <PlayIcon className="h-3.5 w-3.5" />
-        Watch Film
-      </button>
-      <button
-        type="button"
-        onClick={onView}
-        className={`border-b border-bone/30 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition hover:border-gold hover:text-gold ${FOCUS}`}
-      >
-        View Project →
-      </button>
-    </div>
-  );
-}
-
-function ProjectCard({ project, layout, delay, onOpen }) {
-  return (
-    <Reveal delay={delay} className={layout.span}>
-      <article>
-        <button
-          type="button"
-          onClick={() => onOpen(project, true)}
-          aria-label={`Watch ${project.title}`}
-          className={`group relative block w-full text-left ${FOCUS}`}
-        >
-          <Thumb project={project} aspect={layout.aspect} />
-          <PlayBadge />
-        </button>
-        <div className="mt-5 flex items-start gap-5">
-          <span
-            aria-hidden="true"
-            className="font-display text-3xl leading-none text-gold"
-          >
-            {pad(projects.indexOf(project) + 1)}
-          </span>
-          <div className="min-w-0 flex-1">
-            <h3 className="font-display text-[length:clamp(26px,3vw,42px)] uppercase leading-none">
-              {project.title}
-            </h3>
-            <div className="mt-2">
-              <Meta project={project} />
-            </div>
-            <Actions
-              onWatch={() => onOpen(project, true)}
-              onView={() => onOpen(project, false)}
-            />
-          </div>
-        </div>
-      </article>
-    </Reveal>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={dir < 0 ? "Previous video" : "Next video"}
+      className={`grid h-12 w-12 place-items-center rounded-full border border-bone/40 text-bone transition hover:border-gold hover:text-gold disabled:opacity-30 disabled:hover:border-bone/40 disabled:hover:text-bone ${FOCUS}`}
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d={dir < 0 ? "M19 12H5M11 6l-6 6 6 6" : "M5 12h14M13 6l6 6-6 6"} />
+      </svg>
+    </button>
   );
 }
 
 export default function SelectedWork() {
-  const [showAll, setShowAll] = useState(false);
-  const [active, setActive] = useState(null); // { project, autoplay }
+  // The videos live in Supabase. If it cannot be reached, the local list is shown instead.
+  const [data, setData] = useState(() =>
+    backendReady ? { loading: true, items: [] } : { loading: false, items: localProjects },
+  );
+  const [filter, setFilter] = useState("All");
+  const [current, setCurrent] = useState(0);
+  const [open, setOpen] = useState(null); // { project, autoplay }
+  const swipeStart = useRef(null);
+  const dragged = useRef(false);
 
-  const open = (project, autoplay) => setActive({ project, autoplay });
-  const close = () => setActive(null);
+  useEffect(() => {
+    if (!backendReady) return;
+    let alive = true;
+    fetchVideos()
+      .then((items) => alive && setData({ loading: false, items }))
+      .catch(() => alive && setData({ loading: false, items: localProjects }));
+    return () => {
+      alive = false;
+    };
+  }, []);
 
-  const visible = showAll ? rest : rest.slice(0, INITIAL_VISIBLE);
-  const activeIndex = active ? projects.indexOf(active.project) : 0;
-  const goNext = () =>
-    setActive({
-      project: projects[(activeIndex + 1) % projects.length],
-      autoplay: false,
-    });
+  const types = [...new Set(data.items.map((p) => p.category).filter(Boolean))];
+  const list = filter === "All" ? data.items : data.items.filter((p) => p.category === filter);
+  const cur = clamp(current, 0, Math.max(0, list.length - 1));
+
+  const go = (dir) => setCurrent(clamp(cur + dir, 0, list.length - 1));
+  const pick = (type) => {
+    setFilter(type);
+    setCurrent(0);
+  };
+
+  const onKeyDown = (e) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.preventDefault();
+      go(e.key === "ArrowLeft" ? -1 : 1);
+    }
+  };
+  const onPointerUp = (e) => {
+    if (swipeStart.current === null) return;
+    const dx = e.clientX - swipeStart.current;
+    swipeStart.current = null;
+    dragged.current = Math.abs(dx) > 10;
+    if (Math.abs(dx) > 50) go(dx < 0 ? 1 : -1);
+  };
+  const onCard = (i) => {
+    if (dragged.current) {
+      dragged.current = false;
+      return;
+    }
+    if (i === cur) setOpen({ project: list[i], autoplay: true });
+    else setCurrent(i);
+  };
+
+  const openIndex = open ? Math.max(0, list.indexOf(open.project)) : 0;
+  const goNext = () => setOpen({ project: list[(openIndex + 1) % list.length], autoplay: false });
 
   return (
     <section
       id="work"
       aria-labelledby="work-heading"
-      className="relative bg-ink px-[5vw] py-24 font-sans text-bone sm:py-32 lg:py-40"
+      className="relative overflow-hidden bg-ink py-16 font-sans text-bone sm:py-20 lg:py-28"
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-gold/0 via-gold/50 to-gold/0" />
 
-      {/* introduction */}
-      <Reveal className="grid gap-10 lg:grid-cols-12 lg:items-end">
-        <div className="lg:col-span-8">
-          <h2
-            id="work-heading"
-            className="font-display text-[length:clamp(52px,10vw,160px)] uppercase leading-[0.88]"
-          >
-            <span className="block">Every frame.</span>
-            <span className="block text-transparent [-webkit-text-stroke:2px_#F4F1E8]">
-              A different story.
-            </span>
-          </h2>
-        </div>
-        <div className="lg:col-span-4 lg:pb-3">
-          <p className="max-w-sm text-base leading-relaxed text-bone/65">
-            A collection of moving images, visual stories, and moments shaped
-            through the lens and the edit.
-          </p>
-          {realCount > 0 && (
-            <p className="mt-6 font-display text-2xl tracking-wide text-gold">
-              {pad(realCount)}{" "}
-              <span className="font-sans text-xs font-semibold uppercase tracking-[0.26em] text-bone/60">
-                {realCount === 1 ? "Project" : "Projects"}
-              </span>
-            </p>
-          )}
-        </div>
-      </Reveal>
+      <Reveal className="px-[5vw] text-center">
+        <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.3em] text-gold">Selected Work / 02</p>
+        <h2 id="work-heading" className="font-display text-[length:clamp(38px,6vw,88px)] uppercase leading-[0.95]">
+          Every frame.{" "}
+          <span className="text-transparent [-webkit-text-stroke:2px_#F4F1E8]">A different story.</span>
+        </h2>
+        <p className="mx-auto mt-5 max-w-md text-[15px] leading-relaxed text-bone/65">
+          Moving images and visual stories, shaped through the lens and the edit.
+        </p>
 
-      {/* featured project */}
-      <Reveal className="mt-16 lg:mt-24">
-        <article className="grid gap-6 lg:grid-cols-12 lg:gap-10">
-          <button
-            type="button"
-            onClick={() => open(featured, true)}
-            aria-label={`Watch ${featured.title}`}
-            className={`group relative block text-left lg:col-span-8 ${FOCUS}`}
-          >
-            <Thumb project={featured} />
-            <PlayBadge large />
-            <span className="absolute left-4 top-4 bg-gold px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.24em] text-black">
-              Featured
-            </span>
-          </button>
-          <div className="flex flex-col justify-end lg:col-span-4">
-            <span
-              aria-hidden="true"
-              className="font-display text-[length:clamp(72px,11vw,170px)] leading-none text-transparent [-webkit-text-stroke:1.5px_rgba(245,183,0,0.5)]"
-            >
-              {pad(projects.indexOf(featured) + 1)}
-            </span>
-            <h3 className="mt-3 font-display text-[length:clamp(36px,4.6vw,72px)] uppercase leading-[0.95]">
-              {featured.title}
-            </h3>
-            <div className="mt-4">
-              <Meta project={featured} />
-            </div>
-            {featured.description && (
-              <p className="mt-5 max-w-md text-[15px] leading-relaxed text-bone/65">
-                {featured.description}
-              </p>
-            )}
-            <Actions
-              solid
-              onWatch={() => open(featured, true)}
-              onView={() => open(featured, false)}
-            />
+        {types.length > 1 && (
+          <div className="mt-8 flex flex-wrap justify-center gap-3" role="group" aria-label="Filter by type of video">
+            {["All", ...types].map((t) => (
+              <button
+                key={t}
+                type="button"
+                onClick={() => pick(t)}
+                aria-pressed={filter === t}
+                className={`rounded-full border px-5 py-2 text-sm transition ${
+                  filter === t ? "border-gold bg-gold font-semibold text-black" : "border-bone/30 text-bone/80 hover:border-gold hover:text-gold"
+                } ${FOCUS}`}
+              >
+                {t}
+              </button>
+            ))}
           </div>
-        </article>
+        )}
       </Reveal>
 
-      {/* supporting projects */}
-      {visible.length > 0 && (
-        <div className="mt-20 grid gap-x-8 gap-y-16 md:grid-cols-2 lg:mt-28 lg:grid-cols-12 lg:items-end lg:gap-y-24">
-          {visible.map((project, i) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              layout={PATTERN[i % PATTERN.length]}
-              delay={(i % 2) * 120}
-              onOpen={open}
-            />
-          ))}
-        </div>
-      )}
-
-      {rest.length > INITIAL_VISIBLE && !showAll && (
-        <div className="mt-16 flex justify-center">
-          <button
-            type="button"
-            onClick={() => setShowAll(true)}
-            className={`border border-bone/30 px-8 py-4 text-xs font-semibold uppercase tracking-[0.16em] transition hover:border-gold hover:text-gold ${FOCUS}`}
+      {data.loading ? (
+        <p role="status" className="mt-16 text-center text-sm text-bone/50">Loading videos...</p>
+      ) : list.length === 0 ? (
+        <p role="status" className="mt-16 text-center text-sm text-bone/60">New videos are coming soon.</p>
+      ) : (
+        <>
+          <div
+            role="group"
+            aria-roledescription="carousel"
+            aria-label="Videos. Use the arrow buttons, the left and right arrow keys, or swipe."
+            tabIndex={0}
+            onKeyDown={onKeyDown}
+            onPointerDown={(e) => {
+              swipeStart.current = e.clientX;
+              dragged.current = false;
+            }}
+            onPointerUp={onPointerUp}
+            onPointerCancel={() => (swipeStart.current = null)}
+            className="relative mx-auto mt-10 h-[calc(var(--cw)*0.5625+3.5rem)] touch-pan-y overflow-hidden [--cw:78vw] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold sm:[--cw:60vw] lg:[--cw:min(46vw,620px)]"
           >
-            View All Work
-          </button>
-        </div>
-      )}
+            {list.map((p, i) => {
+              const d = i - cur;
+              const a = Math.abs(d);
+              const near = a <= 2;
+              const k = Math.min(a, 2);
+              return (
+                <div
+                  key={p.id}
+                  inert={!near}
+                  style={{
+                    transform: `translate(calc(-50% + var(--cw) * ${OFFSET[k] * Math.sign(d)}), -50%) scale(${SCALE[k]})`,
+                    zIndex: 10 - a,
+                    opacity: near ? 1 : 0,
+                  }}
+                  className="absolute left-1/2 top-1/2 w-[var(--cw)] transition-[transform,opacity] duration-500 ease-out motion-reduce:transition-none"
+                >
+                  <button
+                    type="button"
+                    onClick={() => onCard(i)}
+                    aria-label={d === 0 ? `Play ${p.title}` : `Show ${p.title}`}
+                    className="group relative block w-full overflow-hidden rounded-2xl text-left shadow-[0_24px_60px_rgba(0,0,0,0.6)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold"
+                  >
+                    {near && <Thumb project={p} aspect="aspect-video" />}
+                    <span aria-hidden="true" className={`pointer-events-none absolute inset-0 bg-black transition-opacity duration-500 ${d === 0 ? "opacity-0" : "opacity-50"}`} />
+                    <span aria-hidden="true" className="absolute bottom-3 right-3 z-10 grid h-11 w-11 place-items-center rounded-full bg-gold text-black transition-transform duration-300 group-hover:scale-110">
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current"><path d="M8 5v14l11-7z" /></svg>
+                    </span>
+                    {d === 0 && (
+                      <span className="absolute bottom-3 left-4 right-16 z-10">
+                        {p.studio && (
+                          <span className="block text-[10px] font-semibold uppercase tracking-[0.22em] text-gold">{p.studio}</span>
+                        )}
+                        <span className="mt-1 block font-display text-xl uppercase leading-none sm:text-2xl">{p.category}</span>
+                      </span>
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
 
-      {/* route to contact */}
-      <Reveal className="mt-28 border-t border-bone/10 pt-16 lg:mt-40 lg:pt-20">
-        <div className="flex flex-col items-start justify-between gap-10 lg:flex-row lg:items-end">
-          <p className="max-w-3xl font-display text-[length:clamp(34px,6vw,96px)] uppercase leading-[0.95]">
-            Have a project in mind?{" "}
-            <span className="text-gold">Let&apos;s talk.</span>
-          </p>
-          <a
-            href="#contact"
-            className={`inline-flex shrink-0 bg-gold px-8 py-4 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:-translate-y-0.5 hover:bg-bone motion-reduce:hover:translate-y-0 ${FOCUS}`}
-          >
-            Start a Project
-          </a>
-        </div>
-      </Reveal>
+          {list.length > 1 && (
+            <div className="mt-8 flex justify-center gap-4">
+              <Arrow dir={-1} disabled={cur === 0} onClick={() => go(-1)} />
+              <Arrow dir={1} disabled={cur === list.length - 1} onClick={() => go(1)} />
+            </div>
+          )}
+          <p className="sr-only" aria-live="polite">{list[cur]?.title}</p>
+        </>
+      )}
 
       <VideoModal
-        project={active?.project ?? null}
-        index={activeIndex}
-        total={projects.length}
-        autoplay={active?.autoplay ?? false}
-        onClose={close}
-        onNext={projects.length > 1 ? goNext : undefined}
+        project={open?.project ?? null}
+        index={openIndex}
+        total={list.length}
+        autoplay={open?.autoplay ?? false}
+        onClose={() => setOpen(null)}
+        onNext={list.length > 1 ? goNext : undefined}
       />
     </section>
   );

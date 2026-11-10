@@ -1,34 +1,22 @@
 import { PRIVATE_BUCKET, PUBLIC_BUCKET, sb } from "../_shared/db.ts";
 import { adminId, answerCb, plain, sendMessage, tg, when, type Keyboard } from "../_shared/telegram.ts";
+import { clearSession, getSession, setSession } from "../_shared/session.ts";
+import { videoCallback, videoText } from "../_shared/videos.ts";
 import { newToken, safeEqual, sha256Hex } from "../_shared/crypto.ts";
 import { LIMITS, validateEmailOnly, validateInvitee, validateText } from "../_shared/validation.js";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const SESSION_MAX_MS = 15 * 60 * 1000;
 
 const MENU: Keyboard = [
   [{ text: "Create Invitation", callback_data: "inv:new" }],
   [{ text: "Pending Testimonials", callback_data: "list:pending" }],
+  [{ text: "Add Video", callback_data: "vid:new" }, { text: "Manage Videos", callback_data: "vp:0" }],
   [{ text: "Published", callback_data: "list:approved" }, { text: "Rejected", callback_data: "list:rejected" }],
   [{ text: "Manage Invitations", callback_data: "inv:list" }, { text: "Overview", callback_data: "overview" }],
 ];
 const BACK = [{ text: "Menu", callback_data: "menu" }];
 const SKIP: Keyboard = [[{ text: "Skip", callback_data: "inv:skip" }]];
 const showMenu = (note?: string) => sendMessage((note ? note + "\n\n" : "") + "Portfolio admin. Choose an action:", MENU);
-
-/* session for the multi-step "Create Invitation" flow */
-async function getSession(admin: number) {
-  const { data } = await sb.from("bot_sessions").select("*").eq("telegram_user_id", admin).maybeSingle();
-  if (!data) return null;
-  if (Date.now() - new Date(data.updated_at).getTime() > SESSION_MAX_MS) {
-    await clearSession(admin);
-    return null;
-  }
-  return data;
-}
-const setSession = (admin: number, step: string, data: unknown) =>
-  sb.from("bot_sessions").upsert({ telegram_user_id: admin, step, data, updated_at: new Date().toISOString() });
-const clearSession = (admin: number) => sb.from("bot_sessions").delete().eq("telegram_user_id", admin);
 
 async function askConfirm(admin: number, d: any) {
   await setSession(admin, "confirm", d);
@@ -51,6 +39,7 @@ async function handleText(text: string, admin: number) {
   }
   const s = await getSession(admin);
   if (!s) return showMenu();
+  if (String(s.step).startsWith("v_")) return videoText(t, s, admin);
   const d = s.data ?? {};
 
   if (s.step === "name") {
@@ -194,9 +183,10 @@ async function overview() {
   const [p, a, r] = await Promise.all([count("pending"), count("approved"), count("rejected")]);
   const active = (await sb.from("testimonial_invitations").select("id", { count: "exact", head: true })
     .eq("status", "unused").gt("expires_at", new Date().toISOString())).count ?? 0;
+  const videoCount = (await sb.from("portfolio_videos").select("id", { count: "exact", head: true })).count ?? 0;
   const undelivered = (await sb.from("contact_inquiries").select("id", { count: "exact", head: true }).neq("notification_status", "sent")).count ?? 0;
   return sendMessage(
-    `OVERVIEW\n\nTestimonials: ${p} pending, ${a} published, ${r} rejected\nActive invitations: ${active}\nContact notifications not yet delivered: ${undelivered}`,
+    `OVERVIEW\n\nTestimonials: ${p} pending, ${a} published, ${r} rejected\nVideos on the website: ${videoCount}\nActive invitations: ${active}\nContact notifications not yet delivered: ${undelivered}`,
     [BACK],
   );
 }
@@ -239,6 +229,12 @@ async function handleCallback(cb: any, admin: number) {
       }
       return showMenu();
     }
+    case "vid":
+    case "vp":
+    case "vr":
+    case "vrc":
+    case "vt":
+      return videoCallback(action, arg, admin, showMenu, clearButtons);
     case "rv": return id ? review(id, admin) : showMenu();
     case "ap":
       return id ? sendMessage("Publish this testimonial on the website?", [[{ text: "Yes, publish", callback_data: `apc:${id}` }, { text: "Back", callback_data: `rv:${id}` }]]) : showMenu();

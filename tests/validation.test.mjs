@@ -89,3 +89,33 @@ test("images: SVG, HTML, PDF and executables rejected", () => {
   assert.equal(detectImageType(enc("%PDF-1.7")), null);
   assert.equal(detectImageType(new Uint8Array([0x4d, 0x5a, 0x90, 0, 3, 0, 0, 0, 4, 0, 0, 0, 0])), null);
 });
+
+import { parseVideoLink, safeThumb, VIDEO_TYPES } from "../supabase/functions/_shared/video-links.js";
+
+test("video links: YouTube forms are understood", () => {
+  const id = "zjoIBRTRosw";
+  for (const u of [
+    `https://youtu.be/${id}?si=abc`,
+    `https://www.youtube.com/watch?v=${id}&t=10s`,
+    `https://m.youtube.com/watch?v=${id}`,
+    `https://youtube.com/embed/${id}`,
+    `https://www.youtube.com/live/${id}`,
+  ]) assert.deepEqual(parseVideoLink(u), { provider: "youtube", id, portrait: false }, u);
+  assert.deepEqual(parseVideoLink("https://youtube.com/shorts/fLDc_Dryqzo?si=x"), { provider: "youtube", id: "fLDc_Dryqzo", portrait: true });
+});
+test("video links: Vimeo is understood", () => {
+  assert.deepEqual(parseVideoLink("https://vimeo.com/123456789"), { provider: "vimeo", id: "123456789", portrait: false });
+  assert.deepEqual(parseVideoLink("https://player.vimeo.com/video/123456789?h=abc"), { provider: "vimeo", id: "123456789", portrait: false });
+});
+test("video links: anything else is refused", () => {
+  for (const u of ["", "hello", "javascript:alert(1)", "https://evil.com/watch?v=zjoIBRTRosw", "https://youtube.com.evil.com/watch?v=zjoIBRTRosw",
+    "https://youtube.com/watch?v=short", "https://youtube.com/channel/UCJ0uVZZdifb1xe1RjWQ_8ew", "ftp://youtu.be/zjoIBRTRosw"])
+    assert.equal(parseVideoLink(u), null, u);
+});
+test("video links: thumbnails only from YouTube or Vimeo image hosts", () => {
+  assert.ok(safeThumb("https://i.ytimg.com/vi/x/maxresdefault.jpg"));
+  assert.ok(safeThumb("https://i.vimeocdn.com/video/1.jpg"));
+  assert.equal(safeThumb("https://evil.com/i.ytimg.com/x.jpg"), null);
+  assert.equal(safeThumb("http://i.ytimg.com/x.jpg"), null);
+  assert.ok(VIDEO_TYPES.length >= 4);
+});

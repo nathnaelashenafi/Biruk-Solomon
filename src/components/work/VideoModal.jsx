@@ -24,7 +24,7 @@ function ModalBody({ project, index, total, autoplay, onClose, onNext }) {
         </button>
       </div>
 
-      <div className="relative aspect-video w-full bg-black">
+      <div className={`relative bg-black ${project.orientation === "portrait" ? "mx-auto aspect-[9/16] h-[min(72svh,720px)]" : "aspect-video w-full"}`}>
         {showPlayer ? (
           player.type === "iframe" ? (
             <iframe

@@ -22,31 +22,46 @@ export function PlayBadge({ large = false }) {
   );
 }
 
+// YouTube has no maxres picture for some videos: fall back to the standard one.
+const fallback = (e) => {
+  const img = e.currentTarget;
+  if (img.src.includes("maxresdefault")) img.src = img.src.replace("maxresdefault", "hqdefault");
+};
+
 export default function Thumb({ project, aspect = "aspect-video" }) {
   const src = asset(project.thumb);
+  const portrait = project.orientation === "portrait";
+  const alt = project.thumbAlt ?? `${project.title}, video thumbnail`;
   const { w = 1600, h = 900 } = project.thumbSize ?? {};
 
   return (
     <span className={`relative block w-full overflow-hidden bg-[#0f0f0f] ${aspect}`}>
-      {src ? (
+      {src && portrait ? (
+        <>
+          {/* vertical video in a wide frame: blurred copy behind, the vertical picture in the middle */}
+          <img src={src} alt="" aria-hidden="true" loading="lazy" decoding="async" onError={fallback} className="absolute inset-0 h-full w-full scale-125 object-cover opacity-50 blur-2xl" />
+          <span className="absolute inset-y-0 left-1/2 aspect-[9/16] -translate-x-1/2 overflow-hidden">
+            <img src={src} alt={alt} loading="lazy" decoding="async" onError={fallback} className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
+          </span>
+        </>
+      ) : src ? (
         <img
           src={src}
-          alt={project.thumbAlt ?? `${project.title} — film still`}
+          alt={alt}
           width={w}
           height={h}
           loading="lazy"
           decoding="async"
+          onError={fallback}
           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
         />
       ) : (
         <span
           role="img"
-          aria-label={`${project.title} — thumbnail placeholder`}
+          aria-label={`${project.title}, thumbnail placeholder`}
           className="absolute inset-0 grid place-items-center bg-[repeating-linear-gradient(135deg,rgba(244,241,232,0.04)_0_14px,transparent_14px_28px)]"
         >
-          <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-bone/40">
-            Thumbnail placeholder
-          </span>
+          <span className="text-[10px] font-semibold uppercase tracking-[0.3em] text-bone/40">Thumbnail placeholder</span>
         </span>
       )}
       <span className="pointer-events-none absolute inset-0 bg-linear-to-t from-ink/70 via-transparent to-transparent" />
