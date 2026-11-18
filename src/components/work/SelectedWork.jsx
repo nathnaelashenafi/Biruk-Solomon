@@ -20,8 +20,19 @@ function Arrow({ dir, disabled, onClick }) {
       aria-label={dir < 0 ? "Previous video" : "Next video"}
       className={`grid h-12 w-12 place-items-center rounded-full border border-bone/40 text-bone transition hover:border-gold hover:text-gold disabled:opacity-30 disabled:hover:border-bone/40 disabled:hover:text-bone ${FOCUS}`}
     >
-      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d={dir < 0 ? "M19 12H5M11 6l-6 6 6 6" : "M5 12h14M13 6l6 6-6 6"} />
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        className="h-5 w-5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path
+          d={dir < 0 ? "M19 12H5M11 6l-6 6 6 6" : "M5 12h14M13 6l6 6-6 6"}
+        />
       </svg>
     </button>
   );
@@ -44,9 +55,13 @@ export default function SelectedWork() {
     if (!backendReady) return;
     let alive = true;
     fetchVideos()
-      .then((items) => alive && setData({ loading: false, items, error: false }))
-      .catch(() =>
-        alive && setData({ loading: false, items: localProjects, error: true }),
+      .then(
+        (items) => alive && setData({ loading: false, items, error: false }),
+      )
+      .catch(
+        () =>
+          alive &&
+          setData({ loading: false, items: localProjects, error: true }),
       );
     return () => {
       alive = false;
@@ -54,7 +69,10 @@ export default function SelectedWork() {
   }, []);
 
   const types = [...new Set(data.items.map((p) => p.category).filter(Boolean))];
-  const list = filter === "All" ? data.items : data.items.filter((p) => p.category === filter);
+  const list =
+    filter === "All"
+      ? data.items
+      : data.items.filter((p) => p.category === filter);
   const cur = clamp(current, 0, Math.max(0, list.length - 1));
 
   const go = (dir) => setCurrent(clamp(cur + dir, 0, list.length - 1));
@@ -86,7 +104,8 @@ export default function SelectedWork() {
   };
 
   const openIndex = open ? Math.max(0, list.indexOf(open.project)) : 0;
-  const goNext = () => setOpen({ project: list[(openIndex + 1) % list.length], autoplay: false });
+  const goNext = () =>
+    setOpen({ project: list[(openIndex + 1) % list.length], autoplay: false });
 
   return (
     <section
@@ -97,17 +116,26 @@ export default function SelectedWork() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-gold/0 via-gold/50 to-gold/0" />
 
       <Reveal className="px-[5vw] text-center">
-        <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.3em] text-gold">Selected Work / 02</p>
-        <h2 id="work-heading" className="font-display text-[length:clamp(38px,6vw,88px)] uppercase leading-[0.95]">
+        <h2
+          id="work-heading"
+          className="font-display text-[length:clamp(38px,6vw,88px)] uppercase leading-[0.95]"
+        >
           Every frame.{" "}
-          <span className="text-transparent [-webkit-text-stroke:2px_#F4F1E8]">A different story.</span>
+          <span className="text-transparent [-webkit-text-stroke:2px_#F4F1E8]">
+            A different story.
+          </span>
         </h2>
         <p className="mx-auto mt-5 max-w-md text-[15px] leading-relaxed text-bone/65">
-          Moving images and visual stories, shaped through the lens and the edit.
+          Moving images and visual stories, shaped through the lens and the
+          edit.
         </p>
 
         {types.length > 1 && (
-          <div className="mt-8 flex flex-wrap justify-center gap-3" role="group" aria-label="Filter by type of video">
+          <div
+            className="mt-8 flex flex-wrap justify-center gap-3"
+            role="group"
+            aria-label="Filter by type of video"
+          >
             {["All", ...types].map((t) => (
               <button
                 key={t}
@@ -115,7 +143,9 @@ export default function SelectedWork() {
                 onClick={() => pick(t)}
                 aria-pressed={filter === t}
                 className={`rounded-full border px-5 py-2 text-sm transition ${
-                  filter === t ? "border-gold bg-gold font-semibold text-black" : "border-bone/30 text-bone/80 hover:border-gold hover:text-gold"
+                  filter === t
+                    ? "border-gold bg-gold font-semibold text-black"
+                    : "border-bone/30 text-bone/80 hover:border-gold hover:text-gold"
                 } ${FOCUS}`}
               >
                 {t}
@@ -127,14 +157,19 @@ export default function SelectedWork() {
 
       {data.error && (
         <p role="status" className="mt-8 text-center text-sm text-bone/55">
-          Live videos are temporarily unavailable. Showing featured videos instead.
+          Live videos are temporarily unavailable. Showing featured videos
+          instead.
         </p>
       )}
 
       {data.loading ? (
-        <p role="status" className="mt-16 text-center text-sm text-bone/50">Loading videos...</p>
+        <p role="status" className="mt-16 text-center text-sm text-bone/50">
+          Loading videos...
+        </p>
       ) : list.length === 0 ? (
-        <p role="status" className="mt-16 text-center text-sm text-bone/60">New videos are coming soon.</p>
+        <p role="status" className="mt-16 text-center text-sm text-bone/60">
+          New videos are coming soon.
+        </p>
       ) : (
         <>
           <div
@@ -174,16 +209,28 @@ export default function SelectedWork() {
                     className="group relative block w-full overflow-hidden rounded-2xl text-left shadow-[0_24px_60px_rgba(0,0,0,0.6)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold"
                   >
                     {near && <Thumb project={p} aspect="aspect-video" />}
-                    <span aria-hidden="true" className={`pointer-events-none absolute inset-0 bg-black transition-opacity duration-500 ${d === 0 ? "opacity-0" : "opacity-50"}`} />
-                    <span aria-hidden="true" className="absolute bottom-3 right-3 z-10 grid h-11 w-11 place-items-center rounded-full bg-gold text-black transition-transform duration-300 group-hover:scale-110">
-                      <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current"><path d="M8 5v14l11-7z" /></svg>
+                    <span
+                      aria-hidden="true"
+                      className={`pointer-events-none absolute inset-0 bg-black transition-opacity duration-500 ${d === 0 ? "opacity-0" : "opacity-50"}`}
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="absolute bottom-3 right-3 z-10 grid h-11 w-11 place-items-center rounded-full bg-gold text-black transition-transform duration-300 group-hover:scale-110"
+                    >
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 fill-current">
+                        <path d="M8 5v14l11-7z" />
+                      </svg>
                     </span>
                     {d === 0 && (
                       <span className="absolute bottom-3 left-4 right-16 z-10">
                         {p.studio && (
-                          <span className="block text-[10px] font-semibold uppercase tracking-[0.22em] text-gold">{p.studio}</span>
+                          <span className="block text-[10px] font-semibold uppercase tracking-[0.22em] text-gold">
+                            {p.studio}
+                          </span>
                         )}
-                        <span className="mt-1 block font-display text-xl uppercase leading-none sm:text-2xl">{p.category}</span>
+                        <span className="mt-1 block font-display text-xl uppercase leading-none sm:text-2xl">
+                          {p.category}
+                        </span>
                       </span>
                     )}
                   </button>
@@ -195,10 +242,16 @@ export default function SelectedWork() {
           {list.length > 1 && (
             <div className="mt-8 flex justify-center gap-4">
               <Arrow dir={-1} disabled={cur === 0} onClick={() => go(-1)} />
-              <Arrow dir={1} disabled={cur === list.length - 1} onClick={() => go(1)} />
+              <Arrow
+                dir={1}
+                disabled={cur === list.length - 1}
+                onClick={() => go(1)}
+              />
             </div>
           )}
-          <p className="sr-only" aria-live="polite">{list[cur]?.title}</p>
+          <p className="sr-only" aria-live="polite">
+            {list[cur]?.title}
+          </p>
         </>
       )}
 
