@@ -19,6 +19,7 @@ export const CONSENT_TEXT =
 export const IMAGE = { maxBytes: 2 * 1024 * 1024, types: ["image/jpeg", "image/png", "image/webp"] };
 
 // control characters, zero-width and bidi override characters
+// eslint-disable-next-line no-control-regex
 const BAD = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u200B-\u200F\u202A-\u202E\u2066-\u2069]/g;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 

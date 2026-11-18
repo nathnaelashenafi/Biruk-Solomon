@@ -31,8 +31,16 @@ async function request(url, init = {}) {
 const fn = (name, init) => request(`${BASE}/functions/v1/${name}`, { method: "POST", ...init });
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
-export const sendContact = (payload) =>
-  fn("contact-submit", { headers: JSON_HEADERS, body: JSON.stringify(payload) });
+export async function sendContact(payload) {
+  const result = await fn("contact-submit", {
+    headers: JSON_HEADERS,
+    body: JSON.stringify(payload),
+  });
+  if (result?.ok !== true || result.email_delivered !== true) {
+    throw new ApiError(502, { error: "email_delivery_unconfirmed" });
+  }
+  return result;
+}
 
 export const checkInvitation = (token) =>
   fn("testimonial-validate", { headers: JSON_HEADERS, body: JSON.stringify({ token }) });

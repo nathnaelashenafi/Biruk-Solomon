@@ -30,7 +30,9 @@ function Arrow({ dir, disabled, onClick }) {
 export default function SelectedWork() {
   // The videos live in Supabase. If it cannot be reached, the local list is shown instead.
   const [data, setData] = useState(() =>
-    backendReady ? { loading: true, items: [] } : { loading: false, items: localProjects },
+    backendReady
+      ? { loading: true, items: [], error: false }
+      : { loading: false, items: localProjects, error: false },
   );
   const [filter, setFilter] = useState("All");
   const [current, setCurrent] = useState(0);
@@ -42,8 +44,10 @@ export default function SelectedWork() {
     if (!backendReady) return;
     let alive = true;
     fetchVideos()
-      .then((items) => alive && setData({ loading: false, items }))
-      .catch(() => alive && setData({ loading: false, items: localProjects }));
+      .then((items) => alive && setData({ loading: false, items, error: false }))
+      .catch(() =>
+        alive && setData({ loading: false, items: localProjects, error: true }),
+      );
     return () => {
       alive = false;
     };
@@ -120,6 +124,12 @@ export default function SelectedWork() {
           </div>
         )}
       </Reveal>
+
+      {data.error && (
+        <p role="status" className="mt-8 text-center text-sm text-bone/55">
+          Live videos are temporarily unavailable. Showing featured videos instead.
+        </p>
+      )}
 
       {data.loading ? (
         <p role="status" className="mt-16 text-center text-sm text-bone/50">Loading videos...</p>

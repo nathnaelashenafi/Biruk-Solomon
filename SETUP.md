@@ -1,43 +1,79 @@
-# Testimonials, invitations and contact: setup
+# Supabase, contact email, testimonials and deployment
 
-Browser (React, public keys only) -> Supabase Edge Functions (secrets live here) -> Postgres + Storage -> Telegram bot.
+The browser uses only the public Supabase URL and publishable/anon key. Supabase Edge Functions
+hold the service-role, Telegram and email-provider credentials. Private data is accessed through
+those functions; the website can read only approved testimonials and public videos.
 
-## 1. Database
+## 1. Link and migrate the database
+
 ```bash
-npm i -g supabase            # or: npx supabase ...
-supabase login
-supabase link --project-ref YOUR-PROJECT-REF
-supabase db push             # applies supabase/migrations/20261101000000_testimonials_and_contact.sql
+npx supabase login
+npx supabase link --project-ref YOUR-PROJECT-REF
+npx supabase db push --linked
 ```
-Creates the tables (all private, Row-Level Security on, no public policies), the `public_testimonials` view
-(the only thing the website can read), the SQL functions, and the two storage buckets
-(`testimonial-private`, `testimonial-public`).
 
-## 2. Telegram bot
-1. In Telegram open **@BotFather**, send `/newbot`, follow the steps, copy the **token**.
-2. Send any message to your new bot, then open `https://api.telegram.org/bot<TOKEN>/getUpdates` in a browser
-   and read `message.from.id`. That number is `TELEGRAM_ADMIN_USER_ID`. Do not share it publicly.
-3. Make two random strings: `openssl rand -hex 32` (webhook secret) and again (cron secret).
+This applies every migration in `supabase/migrations`, including the contact phone, portfolio
+videos, and idempotent email-delivery changes. It creates private tables with RLS enabled, the
+public views, database functions, and the `testimonial-private` and `testimonial-public` buckets.
 
-## 3. Secrets (backend only)
-Copy the backend block of `.env.example` into **supabase/.env** (git-ignored), fill it in, then:
+To preview changes without applying them, use `npx supabase db push --linked --dry-run`.
+
+## 2. Configure email delivery
+
+Contact submissions are saved in Postgres and emailed to `biruksolomon701@gmail.com` through
+Resend. Create a Resend account, verify a sender domain, and create an API key. Do not use the
+recipient's Gmail address as the sender unless it is a domain Resend has verified.
+
+Set these as Supabase function secrets:
+
+| Secret | Purpose |
+|---|---|
+| `RESEND_API_KEY` | Resend API credential; backend only |
+| `CONTACT_EMAIL_FROM` | Verified sender, e.g. `Biruk Solomon <mail@your-verified-domain>` |
+| `ALLOWED_ORIGIN` | Exact browser origins, comma-separated: `https://nathnaelashenafi.github.io,http://localhost:5173` |
+| `PUBLIC_SITE_URL` | Invitation link base: `https://nathnaelashenafi.github.io/Biruk-Solomon` |
+
+Email is not reported as sent unless Resend accepts it. The API key and sender must be configured
+before the contact form can report email success. Delivery failures are logged and can be retried
+using the same idempotency key; Resend receives an idempotency key so network retries do not send
+duplicate messages.
+
+## 3. Configure the Telegram bot
+
+1. In Telegram, open **@BotFather**, send `/newbot`, and copy the token.
+2. Send a message to the bot, then open `https://api.telegram.org/bot<TOKEN>/getUpdates` and read
+   `message.from.id`. Use this numeric value for `TELEGRAM_ADMIN_USER_ID`; do not share it.
+3. Generate two random strings with `openssl rand -hex 32`, one for `TELEGRAM_WEBHOOK_SECRET` and
+   one for `CRON_SECRET`.
+
+Put these values, plus the email settings above, in the git-ignored `supabase/.env`. Use
+`.env.example` as the key list, replacing all placeholders. Then set the Edge Function secrets:
+
 ```bash
-supabase secrets set --env-file supabase/.env
+npx supabase secrets set --env-file supabase/.env
 ```
-| Variable | Where | Purpose |
-|---|---|---|
-| `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` | frontend `.env.local` + your deploy build settings | public, safe in the browser |
-| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_ADMIN_USER_ID`, `TELEGRAM_WEBHOOK_SECRET`, `CRON_SECRET`, `ALLOWED_ORIGIN`, `PUBLIC_SITE_URL` | Supabase function secrets | never in the browser or Git |
-| `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` | provided to functions automatically | do not copy anywhere |
 
-## 4. Deploy the functions
+`SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are provided to Edge Functions automatically; do
+not copy them into the frontend. Never put Telegram credentials, the service-role key, or the
+Resend API key in a `VITE_` variable.
+
+## 4. Deploy Supabase functions
+
+Apply migrations before deploying functions that use the new columns and SQL function:
+
 ```bash
-supabase functions deploy --no-verify-jwt
+npx supabase db push --linked
+npx supabase functions deploy --no-verify-jwt
 ```
-`--no-verify-jwt` is intentional: visitors and Telegram have no Supabase login. Each function does its own checks
-(Telegram: webhook secret + numeric admin ID; notify-retry: cron secret; public ones: validation + rate limits).
 
-## 5. Register the webhook
+`supabase/config.toml` records the project configuration and disables gateway JWT verification
+for these functions because public visitors and Telegram do not sign in to Supabase. Each function
+enforces its own checks: Telegram's webhook secret and numeric admin ID, the cron secret, exact
+CORS origins, input validation, and rate limits. Keep the explicit `--no-verify-jwt` flag when
+deploying so the deployed setting remains unambiguous.
+
+Register or update the Telegram webhook:
+
 ```bash
 curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
   -d "url=https://YOUR-PROJECT-REF.supabase.co/functions/v1/telegram-webhook" \
@@ -47,15 +83,35 @@ curl -X POST "https://api.telegram.org/bot<TOKEN>/setMyCommands" \
   -d 'commands=[{"command":"menu","description":"Open the menu"},{"command":"cancel","description":"Cancel"}]'
 ```
 
-## 6. Frontend
-Add the two `VITE_` values to `.env.local`, and to the build step of your GitHub Actions workflow
-(`env:` block, from repository secrets or variables). They are public by design. Then merge the
-App.jsx change from the instructions, `npm run build`, deploy.
-The invitation page is `https://YOUR-SITE/#/testimonial?token=...` (hash route, so it works on GitHub Pages;
-the token in the `#` part is never sent to any server or logged).
+## 5. Frontend and GitHub Pages
 
-## 7. Retry undelivered Telegram notifications (recommended)
-Enable the `pg_cron` and `pg_net` extensions, then:
+Put `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in the ignored frontend `.env.local` for local
+development. These two public values must also be set as **GitHub repository variables** with the
+same names; the deploy workflow injects them into the Vite production build.
+
+```bash
+npm ci
+npm run dev
+```
+
+Open `http://localhost:5173/`. Local Vite uses `/` as its base path; production builds use
+`/Biruk-Solomon/`. Test the production bundle locally with:
+
+```bash
+npm run build
+npm run preview
+```
+
+GitHub Pages is deployed by `.github/workflows/deploy.yml` on pushes to `master` or by manual
+workflow dispatch. Invitation links use a hash route (`/#/testimonial?token=...`), so refreshing
+the invitation page does not require a GitHub Pages rewrite rule. The token after `#` is not sent
+in the initial page request.
+
+## 6. Retry failed notifications (recommended)
+
+The retry function handles both failed Telegram notifications and contact email delivery. Enable
+`pg_cron` and `pg_net`, then schedule it:
+
 ```sql
 select cron.schedule('notify-retry', '*/5 * * * *', $$
   select net.http_post(
@@ -63,43 +119,50 @@ select cron.schedule('notify-retry', '*/5 * * * *', $$
     headers := '{"x-cron-secret": "YOUR-CRON-SECRET"}'::jsonb);
 $$);
 ```
-It only re-sends; it cannot create a second inquiry or testimonial.
 
-## 8. Testing checklist (do these with real credentials)
-1. Message the bot from a different Telegram account: it must answer "This bot is private." and do nothing else.
-2. From your account: /menu, Create Invitation, confirm. Open the link, check the form is prefilled.
-3. Submit a testimonial (with and without a photo). The bot must notify you. Reload the link: "already been used".
-4. Review shows full details and photos. Approve: the testimonial appears on the site without a rebuild.
-5. Submit the contact form: you get "NEW CONTACT INQUIRY" in Telegram. Submit 6 times in an hour: the 6th is refused.
-6. Wait over an hour on a fresh link: "expired". Cancel a link in the bot: "cancelled".
+Retries only update existing inquiry/testimonial rows. Email attempts are capped and an email
+already accepted by Resend is not resent for the same inquiry.
 
-## 9. Automated tests
-- `npm test` runs the validation tests (needs only Node).
-- `tests/database.test.sh` tests the SQL (concurrency, expiry, permissions) against a local Postgres. Create these
-  first: roles `anon`, `authenticated`, `service_role (bypassrls)`; `create schema storage;` and
-  `create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);`
-  in a database called `t`, then apply the migration.
+## 7. End-to-end checks
 
-## 10. Retention (suggested, not automatic)
-Rejected testimonials: delete after 90 days. Contact inquiries: delete after 12 months. Example:
-```sql
-delete from public.testimonials where status = 'rejected' and rejected_at < now() - interval '90 days';
-delete from public.contact_inquiries where created_at < now() - interval '12 months';
-```
-(Also remove the matching files from the `testimonial-private` bucket.)
+1. Submit a contact message locally and verify it is saved in `contact_inquiries`, arrives at
+   Biruk's email, and sends a Telegram notification. Retry the same submission after a network
+   interruption; it must not create another inquiry.
+2. Submit with Resend unconfigured or unavailable. The form must show a delivery error, not
+   success; the saved inquiry can be retried after configuration is corrected.
+3. In Telegram, use `/menu` -> **Create Invitation**. Open the link, submit a testimonial with and
+   without a photo, and verify the link reports used if opened again.
+4. Review the testimonial in Telegram and approve it. It should appear on the website without a
+   rebuild; pending and rejected testimonials should remain private.
+5. Test the Telegram admin flow from the configured admin account and verify a different account
+   receives “This bot is private.”
+6. Add/remove a video through Telegram and verify the public site updates. Existing locally
+   configured projects remain as a fallback if the Supabase video view cannot be read.
+7. Check the deployed site at `https://nathnaelashenafi.github.io/Biruk-Solomon/`, including the
+   invitation hash route and refresh behavior.
+
+## 8. Automated tests
+
+- `npm test` runs validation and video-link tests using Node.
+- `npm run lint` checks JavaScript/JSX.
+- `npm run build` checks the production Vite bundle.
+- `tests/database.test.sh` exercises SQL concurrency, expiry, authorization, and rate limiting
+  against a local Postgres database. It expects Supabase-style `anon`, `authenticated`, and
+  `service_role` roles plus a `storage.buckets` stub; apply all migrations before running it.
 
 ## Known limits
-- Uploaded images are checked by real file content, type and size. They are **not** malware-scanned or re-encoded.
-- An invitation link is not identity verification: anyone holding it can use it before it expires.
-- Rate limits are fixed-window and keyed on a hash of the IP. Shared IPs share a limit; a determined attacker can rotate IPs.
-- There is no web review page: review, photos, approve and reject happen in Telegram.
 
-## 11. Managing the portfolio videos from Telegram
-The videos on the site are stored in Supabase (`portfolio_videos`) and the website reads the public view `public_videos`.
-In the bot: **/menu**, then
-- **Add Video**: paste a YouTube or Vimeo link. The bot checks the video exists and can be embedded, suggests the title,
-  then asks for the studio (optional) and the type of video. Confirm, and it is on the website straight away (no rebuild).
-- **Manage Videos**: lists the videos (newest first, 8 per page). Tap **Remove**, then confirm.
-Only public or unlisted YouTube videos and public Vimeo videos work. Thumbnails come from YouTube or Vimeo automatically.
-To change a title, remove the video and add it again.
-After pulling this update: `npx supabase db push`, then `npx supabase functions deploy --no-verify-jwt`.
+- Uploaded images are checked by file content, type, and size; they are not malware-scanned or
+  re-encoded.
+- An invitation link is not identity verification: anyone holding it can use it once before it
+  expires.
+- Rate limits are fixed-window and keyed on a hash of the IP. Shared IPs share a limit; clients
+  that can rotate IPs can evade per-IP limits.
+- There is no web review page; review, photos, approval, and rejection happen in Telegram.
+- Rejected testimonial files and old contact inquiries require manual retention cleanup.
+
+## Portfolio videos
+
+Videos are stored in `portfolio_videos` and read through the public `public_videos` view. In
+Telegram, use **/menu** -> **Add Video** or **Manage Videos**. Only public/unlisted YouTube videos
+and public Vimeo videos are supported; thumbnails are selected from YouTube/Vimeo image hosts.

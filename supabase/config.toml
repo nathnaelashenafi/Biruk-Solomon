@@ -1,0 +1,16 @@
+project_id = "biruk-solomon"
+
+[functions.contact-submit]
+verify_jwt = false
+
+[functions.testimonial-validate]
+verify_jwt = false
+
+[functions.testimonial-submit]
+verify_jwt = false
+
+[functions.telegram-webhook]
+verify_jwt = false
+
+[functions.notify-retry]
+verify_jwt = false

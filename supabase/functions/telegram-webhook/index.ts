@@ -120,7 +120,10 @@ async function review(id: string, admin: number) {
   for (const [label, path] of [["Profile photo", t.profile_image_path], ["Company logo", t.company_logo_path]] as const) {
     if (!path) continue;
     const { data: signed } = await sb.storage.from(PRIVATE_BUCKET).createSignedUrl(path, 60);
-    if (!signed?.signedUrl) continue;
+    if (!signed?.signedUrl) {
+      await sendMessage(`${label}: could not be prepared for review.`);
+      continue;
+    }
     await tg("sendPhoto", { chat_id: admin, photo: signed.signedUrl, caption: label })
       .catch(() => tg("sendDocument", { chat_id: admin, document: signed.signedUrl, caption: label }))
       .catch(() => sendMessage(`${label}: could not be sent to Telegram.`));
@@ -148,11 +151,16 @@ async function publish(id: string, admin: number) {
   const copied: string[] = [];
   const toPublic = async (path: string | null) => {
     if (!path) return null;
-    const dest = `${id}/${path.split("/").pop()}`;
+    const dest = `${id}/${crypto.randomUUID()}-${path.split("/").pop()}`;
     const { error } = await sb.storage.from(PRIVATE_BUCKET).copy(path, dest, { destinationBucket: PUBLIC_BUCKET });
-    if (error && !/exist|duplicate/i.test(error.message)) throw new Error("copy_failed");
+    if (error) throw new Error("copy_failed");
     copied.push(dest);
     return dest;
+  };
+  const cleanupCopied = async () => {
+    if (!copied.length) return;
+    const { error } = await sb.storage.from(PUBLIC_BUCKET).remove(copied);
+    if (error) console.error("publish_cleanup_failed", error.message);
   };
   try {
     const p = await toPublic(t.profile_image_path);
@@ -160,13 +168,13 @@ async function publish(id: string, admin: number) {
     const { data: res, error } = await sb.rpc("approve_testimonial", { p_id: id, p_admin: admin, p_profile_public: p, p_logo_public: l });
     if (error) throw new Error("approve_failed");
     if (res !== "ok") {
-      if (copied.length) await sb.storage.from(PUBLIC_BUCKET).remove(copied);
+      await cleanupCopied();
       return sendMessage("No change: this testimonial is no longer pending.");
     }
     return sendMessage("Approved and published. It now appears on the website.");
   } catch (e) {
     console.error("publish_failed", (e as Error).message);
-    if (copied.length) await sb.storage.from(PUBLIC_BUCKET).remove(copied).catch(() => {});
+    await cleanupCopied();
     return sendMessage("Publishing failed and nothing was changed. Tap Approve again to retry.");
   }
 }
@@ -185,8 +193,9 @@ async function overview() {
     .eq("status", "unused").gt("expires_at", new Date().toISOString())).count ?? 0;
   const videoCount = (await sb.from("portfolio_videos").select("id", { count: "exact", head: true })).count ?? 0;
   const undelivered = (await sb.from("contact_inquiries").select("id", { count: "exact", head: true }).neq("notification_status", "sent")).count ?? 0;
+  const emailUndelivered = (await sb.from("contact_inquiries").select("id", { count: "exact", head: true }).in("email_status", ["pending", "sending", "failed", "not_configured"])).count ?? 0;
   return sendMessage(
-    `OVERVIEW\n\nTestimonials: ${p} pending, ${a} published, ${r} rejected\nVideos on the website: ${videoCount}\nActive invitations: ${active}\nContact notifications not yet delivered: ${undelivered}`,
+    `OVERVIEW\n\nTestimonials: ${p} pending, ${a} published, ${r} rejected\nVideos on the website: ${videoCount}\nActive invitations: ${active}\nContact Telegram notifications not yet delivered: ${undelivered}\nContact emails not yet delivered: ${emailUndelivered}`,
     [BACK],
   );
 }

@@ -40,11 +40,12 @@ export const answerCb = (id: string, text?: string, alert = false) =>
   tg("answerCallbackQuery", { callback_query_id: id, ...(text ? { text, show_alert: alert } : {}) }).catch(() => {});
 
 async function record(table: string, id: string, attempts: number, ok: boolean) {
-  await sb.from(table).update({
+  const { error } = await sb.from(table).update({
     notification_status: ok ? "sent" : "failed",
     notification_attempts: attempts + 1,
     last_notification_attempt_at: new Date().toISOString(),
   }).eq("id", id);
+  if (error) console.error("notification_status_update_failed", table, error.code);
 }
 
 export async function notifyContact(row: any) {

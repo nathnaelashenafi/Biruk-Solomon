@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Reveal from "./work/Reveal";
 import { FOCUS } from "./work/ui";
 import { ApiError, backendReady, sendContact } from "../lib/api";
@@ -45,6 +45,7 @@ export default function Contact() {
   const [errors, setErrors] = useState({});
   const [status, setStatus] = useState("idle"); // idle | sending | sent | failed
   const [failure, setFailure] = useState("");
+  const submission = useRef(null);
 
   const set = (k) => (e) => setF((p) => ({ ...p, [k]: e.target.value }));
   const aria = (k) => ({
@@ -68,19 +69,39 @@ export default function Contact() {
     setErrors({});
     setStatus("sending");
     try {
-      await sendContact({ ...v.value, website: f.website });
+      const fingerprint = JSON.stringify(v.value);
+      if (submission.current?.fingerprint !== fingerprint) {
+        submission.current = { fingerprint, key: crypto.randomUUID() };
+      }
+      await sendContact({
+        ...v.value,
+        website: f.website,
+        idempotency_key: submission.current.key,
+      });
+      submission.current = null;
       setF(EMPTY);
       setStatus("sent");
     } catch (err) {
       if (err instanceof ApiError && err.status === 422 && err.body.fields) {
         setErrors(err.body.fields);
+        submission.current = null;
         return setStatus("idle");
       }
-      setFailure(
+      const errorCode = err instanceof ApiError ? err.body.error : "";
+      const saved = err instanceof ApiError && err.body.saved === true;
+      const message =
         err instanceof ApiError && err.status === 429
           ? "Too many messages from this device. Please try again later."
-          : "Your message could not be sent. Please try again, or email me directly.",
-      );
+          : errorCode === "email_not_configured"
+            ? "Your message was saved, but email delivery is not configured yet. Please email me directly."
+            : errorCode === "delivery_in_progress"
+              ? "Your message is still being processed. Please wait a moment before trying again."
+              : errorCode === "email_retry_exhausted"
+                ? "Your message was saved, but email delivery could not be confirmed. Please email me directly."
+                : saved
+                  ? "Your message was saved, but email delivery could not be confirmed. Please try again; it is safe to retry."
+                  : "Your message could not be sent. Please try again, or email me directly.";
+      setFailure(message);
       setStatus("failed");
     }
   }
@@ -158,7 +179,7 @@ export default function Contact() {
                 Message received
               </p>
               <p className="mt-3 text-[15px] text-bone/70">
-                Thank you. Your message has been delivered to Biruk.
+                Thank you. Your message has been sent to Biruk&apos;s email.
               </p>
               <button
                 type="button"

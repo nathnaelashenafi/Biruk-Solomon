@@ -168,6 +168,7 @@ function ArrowButton({ dir, disabled, onClick }) {
 
 export default function Testimonials() {
   const [items, setItems] = useState(() => (PREVIEW ? SAMPLE : []));
+  const [loadError, setLoadError] = useState(false);
   const [nav, setNav] = useState({
     prev: false,
     next: false,
@@ -181,7 +182,7 @@ export default function Testimonials() {
     let alive = true;
     fetchApprovedTestimonials(12)
       .then((rows) => alive && Array.isArray(rows) && setItems(rows))
-      .catch(() => {}); // stay hidden if the request fails
+      .catch(() => alive && setLoadError(true));
     return () => {
       alive = false;
     };
@@ -228,7 +229,26 @@ export default function Testimonials() {
   const goTo = (i) =>
     scroller.current?.scrollTo({ left: i * stepSize(), behavior: behavior() });
 
-  if (items.length === 0) return null;
+  if (items.length === 0) {
+    if (!loadError) return null;
+    return (
+      <section
+        id="testimonials"
+        aria-labelledby="testimonials-heading"
+        className="bg-ink px-[5vw] py-16 font-sans text-bone sm:py-20 lg:py-28"
+      >
+        <h2
+          id="testimonials-heading"
+          className="sr-only"
+        >
+          Testimonials
+        </h2>
+        <p role="status" className="text-center text-sm text-bone/60">
+          Testimonials are temporarily unavailable.
+        </p>
+      </section>
+    );
+  }
   const scrollable = nav.positions > 1;
 
   return (

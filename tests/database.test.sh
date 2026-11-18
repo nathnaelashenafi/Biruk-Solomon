@@ -65,4 +65,12 @@ check "a rejected testimonial is not public" "$(as_anon "select count(*) from pu
 R=""; for i in 1 2 3 4 5 6; do R="$R$(q "select public.rate_limit_hit('k',3600,5)")"; done
 check "rate limit allows 5 then blocks" "$R" "tttttf"
 check "buckets exist, private one is not public" "$(q "select string_agg(id||':'||public::text, ',' order by id) from storage.buckets")" "testimonial-private:false,testimonial-public:true"
+
+CID=$(q "insert into contact_inquiries(name,email,subject,message,idempotency_key,email_status) values ('Sam','sam@example.com','Video Editing','Please edit a short film.',gen_random_uuid(),'pending') returning id" | head -n 1)
+check "contact email claim succeeds once" "$(q "select public.claim_contact_email('$CID')")" "t"
+check "duplicate contact email claim is refused" "$(q "select public.claim_contact_email('$CID')")" "f"
+q "update contact_inquiries set email_status='failed' where id='$CID'" >/dev/null
+check "failed email can be retried" "$(q "select public.claim_contact_email('$CID')")" "t"
+check "contact email attempts are tracked" "$(q "select email_attempts from contact_inquiries where id='$CID'")" "2"
+check "anon cannot claim contact email delivery" "$(as_anon "select public.claim_contact_email('$CID')" | grep -c 'permission denied')" "1"
 echo "passed=$pass failed=$fail"
