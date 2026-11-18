@@ -1,164 +1,117 @@
-import { useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Reveal from "./work/Reveal";
+import VideoModal from "./work/VideoModal";
+import { PlayIcon } from "./work/Thumb";
+import { FOCUS } from "./work/ui";
 import { asset } from "../lib/media";
 
 // ─────────────────────────────────────────────────────────────
-// COLOR GRADING MEDIA
-// Put two stills of the SAME frame in /public/grading/ and fill these in.
-//   original : the ungraded frame (what the camera recorded)
-//   graded   : the same frame after grading
-// Both must have the same framing and ratio (16:9, about 1600×900 WebP).
-// While either src is null, a plain placeholder is shown instead.
+// COLOR GRADING
+// The two stills live in /public/grading/ (same frame, same crop):
+//   ungraded.png  what the camera recorded
+//   graded.png    the same frame after grading
+// The frame below is 16:9. If the pictures are another shape, change FRAME (e.g. "aspect-[4/5]").
 // ─────────────────────────────────────────────────────────────
-const GRADING = {
-  original: { src: null, alt: "The original, ungraded frame" }, // e.g. "grading/original.webp"
-  graded: { src: null, alt: "The same frame after color grading" }, // e.g. "grading/graded.webp"
+const IMAGES = {
+  ungraded: { src: "grading/ungraded.png", alt: "The frame before color grading" },
+  graded: { src: "grading/graded.png", alt: "The same frame after color grading" },
+};
+const FRAME = "aspect-video";
+const SECONDS = 2.5; // how long each picture stays before it changes
+
+// The grading video. It is only loaded when the visitor presses the button.
+const VIDEO = {
+  id: "grading-video",
+  title: "Color grading",
+  category: "Color grading",
+  orientation: "portrait",
+  thumb: "https://i.ytimg.com/vi/tZD2WwSPmzQ/maxresdefault.jpg",
+  video: { provider: "youtube", id: "tZD2WwSPmzQ" },
 };
 
-const POINTS = [
-  {
-    label: "Mood",
-    text: "Color and tone set the feeling of a scene before anything is said.",
-  },
-  {
-    label: "Contrast",
-    text: "Balanced highlights and shadows give footage depth and clarity.",
-  },
-  {
-    label: "Consistency",
-    text: "Shots are matched to each other so the cut flows from one to the next.",
-  },
-];
+const prefersReducedMotion = () =>
+  typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const clamp = (n) => Math.min(100, Math.max(0, n));
+// Two pictures on top of each other that fade back and forth.
+// Hover, touch or keyboard focus pauses it. A click lets it carry on.
+function Blink() {
+  const [graded, setGraded] = useState(false);
+  const [held, setHeld] = useState(false); // pointer or focus is on it
+  const [carryOn, setCarryOn] = useState(false); // clicked while held: keep playing
+  const [broken, setBroken] = useState(false);
+  const [still] = useState(prefersReducedMotion); // reduced motion: no automatic changes
 
-function Comparison({ original, graded }) {
-  const [pos, setPos] = useState(50);
-  const box = useRef(null);
-  const dragging = useRef(false);
+  const running = !still && (!held || carryOn);
 
-  const moveTo = (clientX) => {
-    const r = box.current.getBoundingClientRect();
-    setPos(clamp(((clientX - r.left) / r.width) * 100));
+  useEffect(() => {
+    if (!running) return;
+    const id = setInterval(() => setGraded((g) => !g), SECONDS * 1000);
+    return () => clearInterval(id);
+  }, [running]);
+
+  const hold = () => {
+    setHeld(true);
+    setCarryOn(false);
   };
-
-  const onKeyDown = (e) => {
-    const step = e.shiftKey ? 10 : 2;
-    if (e.key === "ArrowLeft" || e.key === "ArrowDown")
-      setPos((p) => clamp(p - step));
-    else if (e.key === "ArrowRight" || e.key === "ArrowUp")
-      setPos((p) => clamp(p + step));
-    else if (e.key === "Home") setPos(0);
-    else if (e.key === "End") setPos(100);
-    else return;
-    e.preventDefault();
+  const release = () => {
+    setHeld(false);
+    setCarryOn(false);
   };
+  const press = () => (still ? setGraded((g) => !g) : setCarryOn(true));
 
+  if (broken) {
+    return (
+      <div className={`grid ${FRAME} w-full place-items-center border border-bone/15 bg-[#0d0d0d] p-6 text-center text-sm text-bone/60`}>
+        Add ungraded.png and graded.png to public/grading
+      </div>
+    );
+  }
+
+  const layer = "absolute inset-0 h-full w-full object-cover transition-opacity duration-700 motion-reduce:transition-none";
   return (
     <div
-      ref={box}
-      onPointerDown={(e) => {
-        dragging.current = true;
-        e.currentTarget.setPointerCapture(e.pointerId);
-        moveTo(e.clientX);
+      role="button"
+      tabIndex={0}
+      aria-label={
+        still
+          ? "Color grading comparison. Press to switch between the ungraded and graded picture."
+          : "Color grading comparison, switching between the ungraded and graded picture. It pauses while you hover or focus it. Press to let it continue."
+      }
+      onPointerEnter={hold}
+      onPointerLeave={release}
+      onFocus={hold}
+      onBlur={release}
+      onClick={press}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          press();
+        }
       }}
-      onPointerMove={(e) => {
-        if (dragging.current) moveTo(e.clientX);
-      }}
-      onPointerUp={() => {
-        dragging.current = false;
-      }}
-      onPointerCancel={() => {
-        dragging.current = false;
-      }}
-      className="relative aspect-video w-full cursor-ew-resize touch-pan-y select-none overflow-hidden border border-bone/15 bg-[#0d0d0d]"
+      className={`relative w-full cursor-pointer select-none overflow-hidden border border-bone/15 bg-[#0d0d0d] ${FRAME} focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold`}
     >
-      <img
-        src={asset(graded.src)}
-        alt={graded.alt}
-        width={1600}
-        height={900}
-        loading="lazy"
-        decoding="async"
-        draggable={false}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
-      <img
-        src={asset(original.src)}
-        alt={original.alt}
-        width={1600}
-        height={900}
-        loading="lazy"
-        decoding="async"
-        draggable={false}
-        style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}
-        className="absolute inset-0 h-full w-full object-cover"
-      />
+      <img src={asset(IMAGES.ungraded.src)} alt={IMAGES.ungraded.alt} loading="lazy" decoding="async" draggable={false} onError={() => setBroken(true)} className={`${layer} ${graded ? "opacity-0" : "opacity-100"}`} />
+      <img src={asset(IMAGES.graded.src)} alt={IMAGES.graded.alt} loading="lazy" decoding="async" draggable={false} onError={() => setBroken(true)} className={`${layer} ${graded ? "opacity-100" : "opacity-0"}`} />
 
-      <span className="pointer-events-none absolute bottom-3 left-3 bg-ink/80 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-bone">
-        Original
+      <span
+        aria-hidden="true"
+        className={`absolute bottom-4 left-4 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] ${
+          graded ? "bg-gold text-black" : "bg-ink/85 text-bone"
+        }`}
+      >
+        {graded ? "Graded" : "Ungraded"}
       </span>
-      <span className="pointer-events-none absolute bottom-3 right-3 bg-gold px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-black">
-        Graded
-      </span>
-
-      <div className="absolute inset-y-0 w-0" style={{ left: `${pos}%` }}>
-        <span
-          aria-hidden="true"
-          className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-gold"
-        />
-        <div
-          role="slider"
-          tabIndex={0}
-          aria-label="Comparison divider. Original on the left, graded on the right."
-          aria-orientation="horizontal"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(pos)}
-          aria-valuetext={`${Math.round(pos)} percent of the frame shows the original`}
-          onKeyDown={onKeyDown}
-          className="absolute left-0 top-1/2 grid h-11 w-11 -translate-x-1/2 -translate-y-1/2 place-items-center bg-gold text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-bone"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            className="h-5 w-5"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M9 7l-5 5 5 5M15 7l5 5-5 5" />
-          </svg>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Shown until real media is supplied. It does not pretend to be a result.
-function Placeholder() {
-  return (
-    <div className="grid aspect-video w-full grid-cols-2 border border-bone/15">
-      {["Original", "Graded"].map((label, i) => (
-        <div
-          key={label}
-          className={`relative bg-[#0d0d0d] bg-[repeating-linear-gradient(135deg,rgba(244,241,232,0.05)_0_1px,transparent_1px_10px)] ${
-            i === 0 ? "border-r border-bone/15" : ""
-          }`}
-        >
-          <span className="absolute bottom-3 left-3 text-[10px] font-semibold uppercase tracking-[0.22em] text-bone/50">
-            {label}
-          </span>
-        </div>
-      ))}
+      {held && !carryOn && !still && (
+        <span aria-hidden="true" className="absolute bottom-4 right-4 bg-ink/85 px-3 py-1.5 text-[11px] font-medium text-bone/80">
+          Paused. Click to continue.
+        </span>
+      )}
     </div>
   );
 }
 
 export default function GradingSection() {
-  const hasMedia = GRADING.original.src && GRADING.graded.src;
+  const [videoOpen, setVideoOpen] = useState(false);
 
   return (
     <section
@@ -168,55 +121,40 @@ export default function GradingSection() {
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-gold/0 via-gold/50 to-gold/0" />
 
-      <Reveal className="grid gap-10 lg:grid-cols-12 lg:items-center lg:gap-14">
-        <div className="lg:col-span-4">
-          <h2
-            id="grading-heading"
-            className="font-display text-[length:clamp(38px,5vw,72px)] uppercase leading-[0.95]"
-          >
-            The same frame,{" "}
-            <span className="text-transparent [-webkit-text-stroke:1.5px_#F4F1E8]">
-              I graded.
-            </span>
-          </h2>
-          <p className="mt-6 max-w-sm text-[15px] leading-relaxed text-bone/70">
-            My grading changes how footage feels. It shapes mood, contrast, and
-            tone, and keeps a video looking like one piece from the first shot
-            to the last.
-          </p>
+      <Reveal className="mx-auto max-w-5xl">
+        <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.3em] text-gold">Color Grading / 04</p>
+        <h2 id="grading-heading" className="font-display text-[length:clamp(38px,5.5vw,80px)] uppercase leading-[0.95]">
+          The same frame,{" "}
+          <span className="text-transparent [-webkit-text-stroke:1.5px_#F4F1E8]">graded.</span>
+        </h2>
+        <p className="mt-6 max-w-xl text-[15px] leading-relaxed text-bone/70">
+          Grading changes how footage feels. It shapes mood, contrast, and tone, and keeps a video looking like one
+          piece from the first shot to the last.
+        </p>
 
-          <dl className="mt-8 max-w-sm divide-y divide-bone/15 border-y border-bone/15">
-            {POINTS.map((p) => (
-              <div key={p.label} className="grid gap-1 py-4">
-                <dt className="text-[10px] font-semibold uppercase tracking-[0.24em] text-gold">
-                  {p.label}
-                </dt>
-                <dd className="text-sm leading-relaxed text-bone/70">
-                  {p.text}
-                </dd>
-              </div>
-            ))}
-          </dl>
+        <div className="mt-10">
+          <Blink />
         </div>
 
-        <div className="lg:col-span-8">
-          {hasMedia ? (
-            <>
-              <Comparison original={GRADING.original} graded={GRADING.graded} />
-              <p className="mt-3 text-xs text-bone/50">
-                Drag the divider, or focus it and use the arrow keys.
-              </p>
-            </>
-          ) : (
-            <>
-              <Placeholder />
-              <p className="mt-3 text-xs text-bone/50">
-                Before and after stills will appear here.
-              </p>
-            </>
-          )}
+        <div className="mt-8 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setVideoOpen(true)}
+            className={`inline-flex items-center gap-3 bg-gold px-7 py-4 text-sm font-semibold text-black transition hover:bg-bone ${FOCUS}`}
+          >
+            <PlayIcon className="h-4 w-4" />
+            Watch the grading video
+          </button>
         </div>
       </Reveal>
+
+      <VideoModal
+        project={videoOpen ? VIDEO : null}
+        index={0}
+        total={1}
+        autoplay
+        onClose={() => setVideoOpen(false)}
+      />
     </section>
   );
 }

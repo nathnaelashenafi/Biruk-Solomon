@@ -13,7 +13,7 @@ function ModalBody({ project, index, total, autoplay, onClose, onNext }) {
     <div>
       <div className="flex items-center justify-between gap-4 border-b border-bone/10 px-5 py-4 sm:px-8">
         <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-gold">
-          {pad(index + 1)} / {pad(total)} — {project.category}
+          {total > 1 ? `${pad(index + 1)} / ${pad(total)} — ` : ""}{project.category}
         </p>
         <button
           type="button"

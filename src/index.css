@@ -6,7 +6,7 @@
   --color-bone: #f4f1e8;
   --font-display: "Anton", sans-serif;
   --font-sans: "Inter", sans-serif;
-  --animate-tape: tape 24s linear infinite;
+  --animate-tape: tape 32s linear infinite;
   @keyframes tape {
     to {
       transform: translateX(-50%);

@@ -1,6 +1,7 @@
 import { useSyncExternalStore } from "react";
 import Hero from "./components/Hero";
 import SelectedWork from "./components/work/SelectedWork";
+import Companies from "./components/Companies";
 import Services from "./components/Services";
 import GradingSection from "./components/GradingSection.jsx";
 import About from "./components/About";
@@ -28,6 +29,7 @@ export default function App() {
     <>
       <Hero />
       <SelectedWork />
+      <Companies />
       <Services />
       <GradingSection />
       <About />

@@ -5,7 +5,8 @@ import { FOCUS } from "./work/ui";
 // ABOUT DATA. Edit here. Only add details you can confirm.
 // CV: put your file in /public with exactly this name.
 // ─────────────────────────────────────────────────────────────
-const CV_FILE = "Biruk-Solomon-CV.pdf";
+const CV_FILE = "biruk-solomon.pdf"; // the file in /public (exact name, lower case)
+const CV_DOWNLOAD_NAME = "Biruk-Solomon-CV.pdf"; // the name the visitor receives
 
 const BIO = [
   "I'm Biruk Solomon, a video editor and videographer based in Addis Ababa, Ethiopia. I turn raw footage into finished stories through editing, pacing, transitions, and the small visual decisions that keep a viewer watching.",
@@ -135,7 +136,7 @@ export default function About() {
 
               <a
                 href={`${import.meta.env.BASE_URL}${CV_FILE}`}
-                download={CV_FILE}
+                download={CV_DOWNLOAD_NAME}
                 className={`inline-flex bg-gold px-6 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-black transition hover:bg-bone motion-reduce:transition-none ${FOCUS}`}
               >
                 Download CV
