@@ -15,7 +15,7 @@ const SERVICES = [
     id: "editing",
     title: "Video Editing",
     description:
-      "I turn your raw footage into a well-paced video, bringing the best moments together with smooth transitions and a clear story that keeps people watching.",
+      "I turn raw footage into engaging videos with smooth transitions and clear storytelling.",
     art: "timeline",
     image: null,
     imageAlt: "",
@@ -24,7 +24,7 @@ const SERVICES = [
     id: "grading",
     title: "Color Grading",
     description:
-      "I work on the colors, lighting, and contrast in your footage to create the right mood and give your video a polished, consistent look.",
+      "I refine colors, lighting, and contrast to give your footage its own mood and style.",
     art: "wheel",
     image: null,
     imageAlt: "",
@@ -33,7 +33,7 @@ const SERVICES = [
     id: "sound",
     title: "Sound Design",
     description:
-      "I bring your video to life with carefully chosen sound effects, background music, and audio adjustments that make every moment feel more engaging.",
+      "I use music and sound effects to make every moment more immersive.",
     art: "wave",
     image: null,
     imageAlt: "",
@@ -42,7 +42,7 @@ const SERVICES = [
     id: "videography",
     title: "Videography",
     description:
-      "I capture your events, ideas, and important moments through thoughtful camera work, paying attention to composition, lighting, and the story behind every shot.",
+      "I capture meaningful moments through creative camera work and thoughtful composition.",
     art: "viewfinder",
     image: null,
     imageAlt: "",
@@ -51,7 +51,7 @@ const SERVICES = [
     id: "consulting",
     title: "Content Consulting",
     description:
-      "I help you develop your ideas, choose the right visual direction, and plan how to bring your content to life before the cameras start rolling.",
+      "I help shape your ideas and plan the right visual direction for your content.",
     art: "storyboard",
     image: null,
     imageAlt: "",
