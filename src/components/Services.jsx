@@ -9,12 +9,13 @@ import { asset } from "../lib/media";
 //         built-in artwork. Leave null to keep the artwork (no empty space either way).
 // art   : which built-in artwork to show when there is no image.
 // ─────────────────────────────────────────────────────────────
+
 const SERVICES = [
   {
     id: "editing",
     title: "Video Editing",
     description:
-      "Shaping raw footage into focused, compelling stories through rhythm, pacing, and precise editing.",
+      "I turn your raw footage into a well-paced video, bringing the best moments together with smooth transitions and a clear story that keeps people watching.",
     art: "timeline",
     image: null,
     imageAlt: "",
@@ -23,7 +24,7 @@ const SERVICES = [
     id: "grading",
     title: "Color Grading",
     description:
-      "Creating atmosphere and visual consistency through considered color, contrast, and tone.",
+      "I work on the colors, lighting, and contrast in your footage to create the right mood and give your video a polished, consistent look.",
     art: "wheel",
     image: null,
     imageAlt: "",
@@ -32,7 +33,7 @@ const SERVICES = [
     id: "sound",
     title: "Sound Design",
     description:
-      "Building a richer viewing experience through thoughtful sound, atmosphere, and audio detail.",
+      "I bring your video to life with carefully chosen sound effects, background music, and audio adjustments that make every moment feel more engaging.",
     art: "wave",
     image: null,
     imageAlt: "",
@@ -41,7 +42,7 @@ const SERVICES = [
     id: "videography",
     title: "Videography",
     description:
-      "Capturing real moments and carefully composed visuals with a clear creative direction.",
+      "I capture your events, ideas, and important moments through thoughtful camera work, paying attention to composition, lighting, and the story behind every shot.",
     art: "viewfinder",
     image: null,
     imageAlt: "",
@@ -50,7 +51,7 @@ const SERVICES = [
     id: "consulting",
     title: "Content Consulting",
     description:
-      "Helping shape the idea, direction, and visual approach behind content before production begins.",
+      "I help you develop your ideas, choose the right visual direction, and plan how to bring your content to life before the cameras start rolling.",
     art: "storyboard",
     image: null,
     imageAlt: "",

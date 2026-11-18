@@ -125,10 +125,6 @@ export default function SelectedWork() {
             A different story.
           </span>
         </h2>
-        <p className="mx-auto mt-5 max-w-md text-[15px] leading-relaxed text-bone/65">
-          Moving images and visual stories, shaped through the lens and the
-          edit.
-        </p>
 
         {types.length > 1 && (
           <div
