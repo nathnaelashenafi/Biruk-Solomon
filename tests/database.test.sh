@@ -44,6 +44,18 @@ check "approve works" "$(q "select public.approve_testimonial('$TID',111,null,nu
 check "repeated approve does nothing" "$(q "select public.approve_testimonial('$TID',111,null,null)")" "not_pending"
 check "an approved testimonial cannot be rejected by accident" "$(q "select public.reject_testimonial('$TID',111)")" "not_pending"
 check "only one approval is audited" "$(q "select count(*) from audit_log where action='testimonial_approved'")" "1"
+check "published testimonial can be archived" "$(q "select public.archive_testimonial('$TID',111)")" "ok"
+check "repeated archive is refused" "$(q "select public.archive_testimonial('$TID',111)")" "not_archivable"
+check "archived testimonial is hidden from public view" "$(as_anon "select count(*) from public_testimonials" | tail -1)" "0"
+check "archived testimonial can be restored to pending" "$(q "select public.restore_testimonial('$TID',111)")" "ok"
+check "restoring twice is refused" "$(q "select public.restore_testimonial('$TID',111)")" "not_restorable"
+check "restored testimonial remains hidden pending approval" "$(as_anon "select count(*) from public_testimonials" | tail -1)" "0"
+check "restored testimonial can be approved again" "$(q "select public.approve_testimonial('$TID',111,null,null)")" "ok"
+check "re-approved testimonial returns to public view" "$(as_anon "select count(*) from public_testimonials" | tail -1)" "1"
+check "archive action is audited" "$(q "select count(*) from audit_log where action='testimonial_archived'")" "1"
+check "restore action is audited" "$(q "select count(*) from audit_log where action='testimonial_restored_to_pending'")" "1"
+check "anon cannot archive testimonials" "$(as_anon "select public.archive_testimonial('$TID',1)" | grep -c 'permission denied')" "1"
+check "anon cannot restore testimonials" "$(as_anon "select public.restore_testimonial('$TID',1)" | grep -c 'permission denied')" "1"
 
 check "anon cannot read testimonials" "$(as_anon "select count(*) from testimonials" | grep -c 'permission denied')" "1"
 check "anon cannot read invitations" "$(as_anon "select count(*) from testimonial_invitations" | grep -c 'permission denied')" "1"
@@ -64,6 +76,8 @@ check "a rejected testimonial is not public" "$(as_anon "select count(*) from pu
 
 R=""; for i in 1 2 3 4 5 6; do R="$R$(q "select public.rate_limit_hit('k',3600,5)")"; done
 check "rate limit allows 5 then blocks" "$R" "tttttf"
+q "insert into portfolio_videos(provider,video_id,title,category,created_by) values ('tiktok','7351234567890123456','TikTok sample','Short-form',111), ('instagram','reel_ABCde_12345','Instagram sample','Short-form',111)"
+check "TikTok and Instagram providers can be stored" "$(q "select count(*) from portfolio_videos where provider in ('tiktok','instagram')")" "2"
 check "buckets exist, private one is not public" "$(q "select string_agg(id||':'||public::text, ',' order by id) from storage.buckets")" "testimonial-private:false,testimonial-public:true"
 
 CID=$(q "insert into contact_inquiries(name,email,subject,message,idempotency_key,email_status) values ('Sam','sam@example.com','Video Editing','Please edit a short film.',gen_random_uuid(),'pending') returning id" | head -n 1)
