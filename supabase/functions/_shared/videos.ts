@@ -10,8 +10,10 @@ const MENU_BTN = [{ text: "Menu", callback_data: "menu" }];
 const CANCEL: Keyboard = [[{ text: "Cancel", callback_data: "vid:no" }]];
 const SKIP: Keyboard = [[{ text: "Skip", callback_data: "vid:skip" }], ...CANCEL];
 
-// Asks YouTube or Vimeo about the link. Also tells us if the video is missing or cannot be embedded.
+// YouTube and Vimeo expose public oEmbed metadata. Social providers use their native
+// embed player; Instagram oEmbed requires credentials, so never request an access token here.
 async function fetchMeta(link: { provider: string; id: string }) {
+  if (link.provider === "tiktok" || link.provider === "instagram") return { ok: true as const };
   const canonical = link.provider === "youtube" ? `https://www.youtube.com/watch?v=${link.id}` : `https://vimeo.com/${link.id}`;
   const endpoint = link.provider === "youtube"
     ? `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(canonical)}`
@@ -29,7 +31,7 @@ async function fetchMeta(link: { provider: string; id: string }) {
       portrait: Number(j.height) > Number(j.width),
     };
   } catch {
-    return { ok: true as const }; // could not check: carry on, the owner can still add it
+    return { ok: true as const };
   }
 }
 
@@ -55,12 +57,11 @@ const askConfirm = async (admin: number, d: any) => {
   );
 };
 
-/* text messages while a video is being added */
 export async function videoText(t: string, s: any, admin: number) {
   const d = s.data ?? {};
   if (s.step === "v_link") {
     const link = parseVideoLink(t);
-    if (!link) return sendMessage("I can only use YouTube or Vimeo links. Send a full link, or tap Cancel.", CANCEL);
+    if (!link) return sendMessage("Send a public YouTube, Vimeo, TikTok or Instagram post/reel link. Private or restricted posts may not embed.", CANCEL);
     const { data: exists } = await sb.from("portfolio_videos").select("id").eq("provider", link.provider).eq("video_id", link.id).maybeSingle();
     if (exists) return sendMessage("That video is already on the website.", CANCEL);
     const meta = await fetchMeta(link);
@@ -80,7 +81,7 @@ export async function videoText(t: string, s: any, admin: number) {
     };
     await setSession(admin, "v_title", next);
     return sendMessage(
-      `Found it.${next.suggested ? `\n\nTitle on ${link.provider}: ${plain(next.suggested, 150)}` : ""}\n\nSend a title for the website${next.suggested ? ", or tap Use this title." : "."}`,
+      `Link recognized (${link.provider}).${next.suggested ? `\n\nTitle: ${plain(next.suggested, 150)}` : ""}\n\nSend a title for the website${next.suggested ? ", or tap Use this title." : "."}`,
       next.suggested ? [[{ text: "Use this title", callback_data: "vid:title" }], ...CANCEL] : CANCEL,
     );
   }
@@ -119,13 +120,11 @@ async function managePage(offset: number) {
   ]);
 }
 
-/* buttons: vid:*, vt:*, vp:*, vr:*, vrc:* */
 export async function videoCallback(
   action: string, arg: string, admin: number,
   menu: (note?: string) => Promise<unknown>, clearButtons: () => Promise<unknown>,
 ) {
   if (action === "vp") return managePage(Math.max(0, Number(arg) || 0));
-
   if (action === "vr" && UUID.test(arg)) {
     const { data: v } = await sb.from("portfolio_videos").select("title").eq("id", arg).maybeSingle();
     if (!v) return sendMessage("That video is already gone.", [MENU_BTN]);
@@ -137,17 +136,15 @@ export async function videoCallback(
     if (error) return sendMessage("Could not remove it. Please try again.");
     return sendMessage(res === "ok" ? "Removed. It is gone from the website." : "That video was already removed.", [[{ text: "Manage videos", callback_data: "vp:0" }], MENU_BTN]);
   }
-
   if (action === "vid" && arg === "new") {
     await setSession(admin, "v_link", {});
-    return sendMessage("Send the YouTube or Vimeo link of the video.", CANCEL);
+    return sendMessage("Send a YouTube, Vimeo, TikTok or Instagram link.", CANCEL);
   }
   if (action === "vid" && arg === "no") {
     await clearSession(admin);
     await clearButtons();
     return menu("Cancelled.");
   }
-
   const s = await getSession(admin);
   if (action === "vid" && arg === "title" && s?.step === "v_title" && s.data?.suggested)
     return askStudio(admin, { ...s.data, title: s.data.suggested });
@@ -156,10 +153,8 @@ export async function videoCallback(
     const type = VIDEO_TYPES[Number(arg)];
     return type ? askConfirm(admin, { ...s.data, category: type }) : menu();
   }
-
   if (action === "vid" && arg === "ok") {
     await clearButtons();
-    // Deleting the session is the atomic claim: a repeated tap finds nothing and adds nothing.
     const { data: gone } = await sb.from("bot_sessions").delete().eq("telegram_user_id", admin).eq("step", "v_confirm").select();
     const d = gone?.[0]?.data;
     if (!d) return menu("Nothing to confirm.");
