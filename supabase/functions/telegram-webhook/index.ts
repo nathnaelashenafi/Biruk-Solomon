@@ -149,7 +149,7 @@ async function review(id: string, admin: number) {
 }
 
 async function publish(id: string, admin: number) {
-  const { data: t } = await sb.from("testimonials").select("id,status,profile_image_path,company_logo_path").eq("id", id).maybeSingle();
+  const { data: t } = await sb.from("testimonials").select("id,status,profile_image_path,company_logo_path,profile_image_public_path,company_logo_public_path").eq("id", id).maybeSingle();
   if (!t) return sendMessage("Testimonial not found.");
   if (t.status !== "pending") return sendMessage(`Already ${t.status}. No change made.`);
 
@@ -168,8 +168,8 @@ async function publish(id: string, admin: number) {
     if (error) console.error("publish_cleanup_failed", error.message);
   };
   try {
-    const p = await toPublic(t.profile_image_path);
-    const l = await toPublic(t.company_logo_path);
+    const p = t.profile_image_public_path ?? await toPublic(t.profile_image_path);
+    const l = t.company_logo_public_path ?? await toPublic(t.company_logo_path);
     const { data: res, error } = await sb.rpc("approve_testimonial", { p_id: id, p_admin: admin, p_profile_public: p, p_logo_public: l });
     if (error) throw new Error("approve_failed");
     if (res !== "ok") {
