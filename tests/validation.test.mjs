@@ -119,3 +119,29 @@ test("video links: thumbnails only from YouTube or Vimeo image hosts", () => {
   assert.equal(safeThumb("http://i.ytimg.com/x.jpg"), null);
   assert.ok(VIDEO_TYPES.length >= 4);
 });
+
+test("video links: TikTok canonical video URLs are understood", () => {
+  assert.deepEqual(parseVideoLink("https://www.tiktok.com/@creator/video/7351234567890123456"), {
+    provider: "tiktok", id: "7351234567890123456", portrait: true,
+  });
+});
+test("video links: Instagram posts, reels and TV URLs are understood", () => {
+  assert.deepEqual(parseVideoLink("https://www.instagram.com/p/ABCde_12345/"), {
+    provider: "instagram", id: "post_ABCde_12345", portrait: false,
+  });
+  assert.deepEqual(parseVideoLink("https://www.instagram.com/reel/ABCde_12345/"), {
+    provider: "instagram", id: "reel_ABCde_12345", portrait: true,
+  });
+  assert.deepEqual(parseVideoLink("https://instagram.com/tv/ABCde_12345/"), {
+    provider: "instagram", id: "tv_ABCde_12345", portrait: false,
+  });
+});
+test("video links: lookalike and unsupported social URLs are rejected", () => {
+  for (const u of [
+    "https://tiktok.com.evil.test/@creator/video/7351234567890123456",
+    "https://instagram.com.evil.test/p/ABCde_12345/",
+    "https://www.tiktok.com/@creator/video/not-a-numeric-id",
+    "https://www.instagram.com/stories/creator/12345/",
+    "https://vm.tiktok.com/shortcode/",
+  ]) assert.equal(parseVideoLink(u), null, u);
+});
