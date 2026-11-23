@@ -48,8 +48,7 @@ returns text language plpgsql as $$
 begin
   update public.testimonials
      set status = 'pending', archived_at = null, archived_by = null,
-         approved_at = null, approved_by = null,
-         profile_image_public_path = null, company_logo_public_path = null
+         approved_at = null, approved_by = null
    where id = p_id and status = 'archived';
   if not found then return 'not_restorable'; end if;
   insert into public.audit_log (actor_telegram_user_id, action, subject_id)
