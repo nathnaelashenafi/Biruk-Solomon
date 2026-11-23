@@ -145,3 +145,22 @@ test("video links: lookalike and unsupported social URLs are rejected", () => {
     "https://vm.tiktok.com/shortcode/",
   ]) assert.equal(parseVideoLink(u), null, u);
 });
+
+import { getPlayer } from "../src/lib/media.js";
+
+test("media players: TikTok uses its native player and a canonical fallback", () => {
+  const player = getPlayer({ provider: "tiktok", id: "7351234567890123456" });
+  assert.equal(player.type, "iframe");
+  assert.equal(player.src, "https://www.tiktok.com/player/v1/7351234567890123456?controls=1&description=1");
+  assert.equal(player.externalUrl, "https://www.tiktok.com/video/7351234567890123456");
+});
+test("media players: Instagram post and reel use native embed endpoints", () => {
+  assert.equal(getPlayer({ provider: "instagram", id: "post_ABCde_12345" }).src,
+    "https://www.instagram.com/p/ABCde_12345/embed/");
+  assert.equal(getPlayer({ provider: "instagram", id: "reel_ABCde_12345" }).src,
+    "https://www.instagram.com/reel/ABCde_12345/embed/");
+});
+test("media players: social IDs are validated before URL construction", () => {
+  assert.equal(getPlayer({ provider: "tiktok", id: "https://evil.example" }), null);
+  assert.equal(getPlayer({ provider: "instagram", id: "post_../evil" }), null);
+});
