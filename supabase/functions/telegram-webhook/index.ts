@@ -12,6 +12,7 @@ const MENU: Keyboard = [
   [{ text: "Pending Testimonials", callback_data: "list:pending" }],
   [{ text: "Add Video", callback_data: "vid:new" }, { text: "Manage Videos", callback_data: "vp:0" }],
   [{ text: "Published", callback_data: "list:approved" }, { text: "Rejected", callback_data: "list:rejected" }],
+  [{ text: "Archived", callback_data: "list:archived" }],
   [{ text: "Manage Invitations", callback_data: "inv:list" }, { text: "Overview", callback_data: "overview" }],
 ];
 const BACK = [{ text: "Menu", callback_data: "menu" }];
@@ -139,7 +140,11 @@ async function review(id: string, admin: number) {
     `Photo: ${t.profile_image_path ? "yes" : "no"}, Logo: ${t.company_logo_path ? "yes" : "no"}\nID: ${t.id}\n\nTestimonial:\n${plain(t.testimonial_text, 1600)}`;
   const kb: Keyboard = t.status === "pending"
     ? [[{ text: "Approve", callback_data: `ap:${t.id}` }, { text: "Reject", callback_data: `rj:${t.id}` }], BACK]
-    : [BACK];
+    : t.status === "approved"
+      ? [[{ text: "Archive", callback_data: `ta:${t.id}` }], BACK]
+      : t.status === "archived"
+        ? [[{ text: "Restore to pending", callback_data: `tr:${t.id}` }], BACK]
+        : [BACK];
   return sendMessage(text, kb);
 }
 
@@ -179,6 +184,22 @@ async function publish(id: string, admin: number) {
   }
 }
 
+async function archive(id: string, admin: number) {
+  const { data: res, error } = await sb.rpc("archive_testimonial", { p_id: id, p_admin: admin });
+  if (error) return sendMessage("Could not archive this testimonial. Please try again.");
+  return sendMessage(res === "ok"
+    ? "Archived. It is hidden from the public website, and its records and images are retained."
+    : "No change: this testimonial is no longer published.");
+}
+
+async function restore(id: string, admin: number) {
+  const { data: res, error } = await sb.rpc("restore_testimonial", { p_id: id, p_admin: admin });
+  if (error) return sendMessage("Could not restore this testimonial. Please try again.");
+  return sendMessage(res === "ok"
+    ? "Restored to Pending. Review and approve it again to publish."
+    : "No change: this testimonial is no longer archived.");
+}
+
 async function reject(id: string, admin: number) {
   const { data: res, error } = await sb.rpc("reject_testimonial", { p_id: id, p_admin: admin });
   if (error) return sendMessage("Could not reject. Please try again.");
@@ -188,14 +209,14 @@ async function reject(id: string, admin: number) {
 async function overview() {
   const count = async (status: string) =>
     (await sb.from("testimonials").select("id", { count: "exact", head: true }).eq("status", status)).count ?? 0;
-  const [p, a, r] = await Promise.all([count("pending"), count("approved"), count("rejected")]);
+  const [p, a, r, archived] = await Promise.all([count("pending"), count("approved"), count("rejected"), count("archived")]);
   const active = (await sb.from("testimonial_invitations").select("id", { count: "exact", head: true })
     .eq("status", "unused").gt("expires_at", new Date().toISOString())).count ?? 0;
   const videoCount = (await sb.from("portfolio_videos").select("id", { count: "exact", head: true })).count ?? 0;
   const undelivered = (await sb.from("contact_inquiries").select("id", { count: "exact", head: true }).neq("notification_status", "sent")).count ?? 0;
   const emailUndelivered = (await sb.from("contact_inquiries").select("id", { count: "exact", head: true }).in("email_status", ["pending", "sending", "failed", "not_configured"])).count ?? 0;
   return sendMessage(
-    `OVERVIEW\n\nTestimonials: ${p} pending, ${a} published, ${r} rejected\nVideos on the website: ${videoCount}\nActive invitations: ${active}\nContact Telegram notifications not yet delivered: ${undelivered}\nContact emails not yet delivered: ${emailUndelivered}`,
+    `OVERVIEW\n\nTestimonials: ${p} pending, ${a} published, ${r} rejected, ${archived} archived\nVideos on the website: ${videoCount}\nActive invitations: ${active}\nContact Telegram notifications not yet delivered: ${undelivered}\nContact emails not yet delivered: ${emailUndelivered}`,
     [BACK],
   );
 }
@@ -212,7 +233,7 @@ async function handleCallback(cb: any, admin: number) {
   switch (action) {
     case "menu": return showMenu();
     case "overview": return overview();
-    case "list": return ["pending", "approved", "rejected"].includes(arg) ? listByStatus(arg) : showMenu();
+    case "list": return ["pending", "approved", "rejected", "archived"].includes(arg) ? listByStatus(arg) : showMenu();
     case "inv": {
       if (arg === "new") {
         await setSession(admin, "name", {});
@@ -245,6 +266,18 @@ async function handleCallback(cb: any, admin: number) {
     case "vt":
       return videoCallback(action, arg, admin, showMenu, clearButtons);
     case "rv": return id ? review(id, admin) : showMenu();
+    case "ta":
+      return id ? sendMessage("Archive this published testimonial? It will disappear from the website, but its data and images will be retained.", [[{ text: "Yes, archive", callback_data: `tac:${id}` }, { text: "Back", callback_data: `rv:${id}` }]]) : showMenu();
+    case "tac":
+      if (!id) return showMenu();
+      await clearButtons();
+      return archive(id, admin);
+    case "tr":
+      return id ? sendMessage("Restore this archived testimonial to Pending? It will not be published until you approve it again.", [[{ text: "Yes, restore", callback_data: `trc:${id}` }, { text: "Back", callback_data: `rv:${id}` }]]) : showMenu();
+    case "trc":
+      if (!id) return showMenu();
+      await clearButtons();
+      return restore(id, admin);
     case "ap":
       return id ? sendMessage("Publish this testimonial on the website?", [[{ text: "Yes, publish", callback_data: `apc:${id}` }, { text: "Back", callback_data: `rv:${id}` }]]) : showMenu();
     case "apc":
