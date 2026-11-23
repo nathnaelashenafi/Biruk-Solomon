@@ -71,6 +71,19 @@ function ModalBody({ project, index, total, autoplay, onClose, onNext }) {
         )}
       </div>
 
+      {player?.externalUrl && (
+        <div className="bg-black px-5 py-3 text-right sm:px-8">
+          <a
+            href={player.externalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`text-xs font-semibold uppercase tracking-[0.18em] text-bone/65 underline decoration-bone/30 underline-offset-4 transition hover:text-gold ${FOCUS}`}
+          >
+            Open original post ↗
+          </a>
+        </div>
+      )}
+
       <div className="grid gap-8 px-5 py-8 sm:px-8 lg:grid-cols-[1.4fr_1fr]">
         <div>
           <h3
