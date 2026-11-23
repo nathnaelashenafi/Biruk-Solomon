@@ -21,13 +21,13 @@ export function getPlayer(video) {
         : null;
     case "tiktok":
       return id && /^\d{6,25}$/.test(id)
-        ? { type: "iframe", src: `https://www.tiktok.com/player/v1/${id}?controls=1&description=1` }
+        ? { type: "iframe", src: `https://www.tiktok.com/player/v1/${id}?controls=1&description=1`, externalUrl: `https://www.tiktok.com/video/${id}` }
         : null;
     case "instagram": {
       const match = /^(post|reel|tv)_([A-Za-z0-9_-]{5,20})$/.exec(id ?? "");
       if (!match) return null;
       const path = match[1] === "post" ? "p" : match[1];
-      return { type: "iframe", src: `https://www.instagram.com/${path}/${match[2]}/embed/` };
+      return { type: "iframe", src: `https://www.instagram.com/${path}/${match[2]}/embed/`, externalUrl: `https://www.instagram.com/${path}/${match[2]}/` };
     }
     case "embed":
       return null; // Arbitrary iframe URLs are deliberately not accepted.
