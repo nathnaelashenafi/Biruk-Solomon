@@ -23,7 +23,7 @@ async function fetchMeta(link: { provider: string; id: string }) {
     const res = await fetch(endpoint, { signal: AbortSignal.timeout(6000) });
     if (res.status === 404) return { ok: false as const, reason: "not_found" };
     if (res.status === 401 || res.status === 403) return { ok: false as const, reason: "not_embeddable" };
-    if (!res.ok) return { ok: true as const };
+    if (!res.ok) return { ok: true as const, title: undefined, thumb: null, portrait: false };
     const j = await res.json();
     return {
       ok: true as const,
