@@ -1,9 +1,11 @@
-// Pure helpers for the video links Biruk pastes into the Telegram bot.
+// Strict provider parsing for links submitted through the private Telegram bot.
 export const VIDEO_TYPES = ["Educational video", "Short-form", "Promo video", "Brand film", "Music video", "Event film"];
 
 const ID11 = /^[A-Za-z0-9_-]{11}$/;
+const INSTAGRAM_CODE = /^[A-Za-z0-9_-]{5,20}$/;
+const TIKTOK_ID = /^\d{6,25}$/;
+const hostOf = (u) => u.hostname.toLowerCase().replace(/^(www|m)\./, "");
 
-// Returns { provider, id, portrait } for a YouTube or Vimeo link, or null for anything else.
 export function parseVideoLink(input) {
   let u;
   try {
@@ -12,7 +14,7 @@ export function parseVideoLink(input) {
     return null;
   }
   if (u.protocol !== "https:" && u.protocol !== "http:") return null;
-  const host = u.hostname.toLowerCase().replace(/^(www|m)\./, "");
+  const host = hostOf(u);
 
   if (host === "youtu.be") {
     const id = u.pathname.slice(1).split("/")[0];
@@ -32,9 +34,19 @@ export function parseVideoLink(input) {
     const m = u.pathname.match(/(?:^|\/)(\d{6,12})(?:\/|$)/);
     return m ? { provider: "vimeo", id: m[1], portrait: false } : null;
   }
+  if (host === "tiktok.com") {
+    const m = u.pathname.match(/^\/@[A-Za-z0-9._-]+\/video\/(\d{6,25})(?:\/|$)/);
+    return m ? { provider: "tiktok", id: m[1], portrait: true } : null;
+  }
+  if (host === "instagram.com") {
+    const m = u.pathname.match(/^\/(p|reel|tv)\/([A-Za-z0-9_-]{5,20})(?:\/|$)/);
+    if (!m || !INSTAGRAM_CODE.test(m[2])) return null;
+    return { provider: "instagram", id: `${m[1] === "reel" ? "reel_" : m[1] === "tv" ? "tv_" : "post_"}${m[2]}`, portrait: m[1] === "reel" };
+  }
   return null;
 }
 
-// Only these image hosts are accepted for thumbnails.
+// Only trusted provider thumbnail hosts are accepted. Social embeds use their native preview.
 export const safeThumb = (url) =>
-  typeof url === "string" && url.length <= 400 && /^https:\/\/(i\.ytimg\.com|i\.vimeocdn\.com)\//.test(url) ? url : null;
+  typeof url === "string" && url.length <= 400 &&
+  /^https:\/\/(i\.ytimg\.com|i\.vimeocdn\.com)\//.test(url) ? url : null;
