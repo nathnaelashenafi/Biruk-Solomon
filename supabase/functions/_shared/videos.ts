@@ -13,7 +13,8 @@ const SKIP: Keyboard = [[{ text: "Skip", callback_data: "vid:skip" }], ...CANCEL
 // YouTube and Vimeo expose public oEmbed metadata. Social providers use their native
 // embed player; Instagram oEmbed requires credentials, so never request an access token here.
 async function fetchMeta(link: { provider: string; id: string }) {
-  if (link.provider === "tiktok" || link.provider === "instagram") return { ok: true as const };
+  if (link.provider === "tiktok" || link.provider === "instagram")
+    return { ok: true as const, title: undefined, thumb: null, portrait: false };
   const canonical = link.provider === "youtube" ? `https://www.youtube.com/watch?v=${link.id}` : `https://vimeo.com/${link.id}`;
   const endpoint = link.provider === "youtube"
     ? `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(canonical)}`
@@ -31,7 +32,7 @@ async function fetchMeta(link: { provider: string; id: string }) {
       portrait: Number(j.height) > Number(j.width),
     };
   } catch {
-    return { ok: true as const };
+    return { ok: true as const, title: undefined, thumb: null, portrait: false };
   }
 }
 
