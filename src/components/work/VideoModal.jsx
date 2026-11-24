@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import Thumb, { PlayIcon } from "./Thumb";
-import { getPlayer } from "../../lib/media";
+import { getPlayer, PROVIDER_NAMES } from "../../lib/media";
 import { FOCUS, pad } from "./ui";
 
 function ModalBody({ project, index, total, autoplay, onClose, onNext }) {
@@ -24,7 +24,7 @@ function ModalBody({ project, index, total, autoplay, onClose, onNext }) {
         </button>
       </div>
 
-      <div className={`relative bg-black ${project.orientation === "portrait" ? "mx-auto aspect-[9/16] h-[min(72svh,720px)]" : "aspect-video w-full"}`}>
+      <div className={`relative bg-black ${project.video?.provider === "instagram" ? "mx-auto h-[min(78svh,760px)] w-[min(92vw,420px)]" : project.orientation === "portrait" ? "mx-auto aspect-[9/16] h-[min(72svh,720px)]" : "aspect-video w-full"}`}>
         {showPlayer ? (
           player.type === "iframe" ? (
             <iframe
@@ -79,6 +79,16 @@ function ModalBody({ project, index, total, autoplay, onClose, onNext }) {
           >
             {project.title}
           </h3>
+          {project.sourceUrl && /^https:\/\//.test(project.sourceUrl) && (
+            <a
+              href={project.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`mt-6 inline-flex items-center gap-2 border border-bone/30 px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] transition hover:border-gold hover:text-gold ${FOCUS}`}
+            >
+              Open on {PROVIDER_NAMES[project.video?.provider] ?? "the original site"}
+            </a>
+          )}
           {project.description && (
             <p className="mt-5 max-w-xl text-[15px] leading-relaxed text-bone/65">
               {project.description}

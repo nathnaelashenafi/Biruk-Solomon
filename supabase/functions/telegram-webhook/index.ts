@@ -1,7 +1,7 @@
 import { PRIVATE_BUCKET, PUBLIC_BUCKET, sb } from "../_shared/db.ts";
 import { adminId, answerCb, plain, sendMessage, tg, when, type Keyboard } from "../_shared/telegram.ts";
 import { clearSession, getSession, setSession } from "../_shared/session.ts";
-import { videoCallback, videoText } from "../_shared/videos.ts";
+import { videoCallback, videoPhoto, videoText } from "../_shared/videos.ts";
 import { newToken, safeEqual, sha256Hex } from "../_shared/crypto.ts";
 import { LIMITS, validateEmailOnly, validateInvitee, validateText } from "../_shared/validation.js";
 
@@ -282,6 +282,7 @@ async function handle(update: any, admin: number) {
     return;
   }
   if (cb) return handleCallback(cb, admin);
+  if (msg?.chat?.type === "private" && (Array.isArray(msg.photo) || msg.document)) return videoPhoto(msg, admin);
   if (msg?.chat?.type === "private" && typeof msg.text === "string") return handleText(msg.text, admin);
 }
 

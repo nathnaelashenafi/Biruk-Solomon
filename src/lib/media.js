@@ -5,6 +5,8 @@ export const asset = (path) => {
   return `${import.meta.env.BASE_URL}${path.replace(/^\//, "")}`;
 };
 
+export const PROVIDER_NAMES = { youtube: "YouTube", vimeo: "Vimeo", tiktok: "TikTok", instagram: "Instagram" };
+
 // Turns a project's `video` config into something the modal can render.
 // Nothing here is called until a visitor asks to play a film.
 export function getPlayer(video) {
@@ -22,6 +24,13 @@ export function getPlayer(video) {
       return id
         ? { type: "iframe", src: `https://player.vimeo.com/video/${id}?autoplay=1&dnt=1` }
         : null;
+    case "tiktok":
+      return /^\d{15,25}$/.test(id ?? "") ? { type: "iframe", src: `https://www.tiktok.com/player/v1/${id}?autoplay=1` } : null;
+    case "instagram": {
+      const m = String(url ?? "").match(/^https:\/\/www\.instagram\.com\/(p|reel|tv)\/([A-Za-z0-9_-]{5,20})\/?$/);
+      const code = m?.[2] ?? id;
+      return /^[A-Za-z0-9_-]{5,20}$/.test(code ?? "") ? { type: "iframe", src: `https://www.instagram.com/${m?.[1] ?? "p"}/${code}/embed/` } : null;
+    }
     case "embed":
       return url ? { type: "iframe", src: url } : null;
     case "cloudinary":

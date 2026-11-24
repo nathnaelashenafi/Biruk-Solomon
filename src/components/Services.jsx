@@ -56,7 +56,7 @@ const SERVICES = [
     image: null,
     imageAlt: "",
   },
-];
+]; 
 
 // ─────────────────────────────────────────────────────────────
 // ARTWORK: simple line illustrations that fill the middle of each card.

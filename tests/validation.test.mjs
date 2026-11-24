@@ -100,21 +100,66 @@ test("video links: YouTube forms are understood", () => {
     `https://m.youtube.com/watch?v=${id}`,
     `https://youtube.com/embed/${id}`,
     `https://www.youtube.com/live/${id}`,
-  ]) assert.deepEqual(parseVideoLink(u), { provider: "youtube", id, portrait: false }, u);
-  assert.deepEqual(parseVideoLink("https://youtube.com/shorts/fLDc_Dryqzo?si=x"), { provider: "youtube", id: "fLDc_Dryqzo", portrait: true });
+  ]) {
+    const r = parseVideoLink(u);
+    assert.equal(r.provider, "youtube", u);
+    assert.equal(r.id, id, u);
+    assert.equal(r.portrait, false, u);
+    assert.equal(r.sourceUrl, `https://www.youtube.com/watch?v=${id}`, u);
+  }
+  const s = parseVideoLink("https://youtube.com/shorts/fLDc_Dryqzo?si=x");
+  assert.equal(s.id, "fLDc_Dryqzo");
+  assert.equal(s.portrait, true);
 });
 test("video links: Vimeo is understood", () => {
-  assert.deepEqual(parseVideoLink("https://vimeo.com/123456789"), { provider: "vimeo", id: "123456789", portrait: false });
-  assert.deepEqual(parseVideoLink("https://player.vimeo.com/video/123456789?h=abc"), { provider: "vimeo", id: "123456789", portrait: false });
+  for (const u of ["https://vimeo.com/123456789", "https://player.vimeo.com/video/123456789?h=abc"]) {
+    const r = parseVideoLink(u);
+    assert.equal(r.provider, "vimeo");
+    assert.equal(r.id, "123456789");
+    assert.equal(r.sourceUrl, "https://vimeo.com/123456789");
+  }
+});
+test("video links: TikTok full links are understood", () => {
+  const r = parseVideoLink("https://www.tiktok.com/@learneta.academy/video/7234567890123456789?is_from_webapp=1");
+  assert.equal(r.provider, "tiktok");
+  assert.equal(r.id, "7234567890123456789");
+  assert.equal(r.portrait, true);
+  assert.equal(r.sourceUrl, "https://www.tiktok.com/@learneta.academy/video/7234567890123456789");
+  assert.equal(parseVideoLink("https://m.tiktok.com/@a_b/video/7234567890123456789").id, "7234567890123456789");
+});
+test("video links: short TikTok links ask for a lookup instead of guessing", () => {
+  for (const u of ["https://vm.tiktok.com/ZMabc12345/", "https://vt.tiktok.com/ZSabc12345", "https://www.tiktok.com/t/ZTabc12345/"]) {
+    const r = parseVideoLink(u);
+    assert.equal(r.provider, "tiktok", u);
+    assert.equal(r.id, null, u);
+    assert.ok(r.resolve.startsWith("https://"), u);
+  }
+});
+test("video links: Instagram reels and posts are understood", () => {
+  const reel = parseVideoLink("https://www.instagram.com/reel/C8x_abc1234/?igsh=xyz");
+  assert.equal(reel.provider, "instagram");
+  assert.equal(reel.id, "C8x_abc1234");
+  assert.equal(reel.portrait, true);
+  assert.equal(reel.sourceUrl, "https://www.instagram.com/reel/C8x_abc1234/");
+  const withUser = parseVideoLink("https://www.instagram.com/brooky9teen7/reel/C8x_abc1234/");
+  assert.equal(withUser.id, "C8x_abc1234");
+  const post = parseVideoLink("https://instagram.com/p/DAbc123456/");
+  assert.equal(post.portrait, false);
+  assert.equal(post.sourceUrl, "https://www.instagram.com/p/DAbc123456/");
 });
 test("video links: anything else is refused", () => {
   for (const u of ["", "hello", "javascript:alert(1)", "https://evil.com/watch?v=zjoIBRTRosw", "https://youtube.com.evil.com/watch?v=zjoIBRTRosw",
-    "https://youtube.com/watch?v=short", "https://youtube.com/channel/UCJ0uVZZdifb1xe1RjWQ_8ew", "ftp://youtu.be/zjoIBRTRosw"])
+    "https://youtube.com/watch?v=short", "https://youtube.com/channel/UCJ0uVZZdifb1xe1RjWQ_8ew", "ftp://youtu.be/zjoIBRTRosw",
+    "https://tiktok.com.evil.com/@a/video/7234567890123456789", "https://www.tiktok.com/@a/video/123", "https://www.tiktok.com/@a",
+    "https://instagram.com.evil.com/reel/C8x_abc1234/", "https://www.instagram.com/explore/", "https://www.instagram.com/brooky9teen7/",
+    "https://vm.tiktok.com.evil.com/ZMabc12345/"])
     assert.equal(parseVideoLink(u), null, u);
 });
-test("video links: thumbnails only from YouTube or Vimeo image hosts", () => {
+test("video links: covers only from YouTube, Vimeo or our own cover bucket", () => {
   assert.ok(safeThumb("https://i.ytimg.com/vi/x/maxresdefault.jpg"));
   assert.ok(safeThumb("https://i.vimeocdn.com/video/1.jpg"));
+  assert.ok(safeThumb("https://abcdefg.supabase.co/storage/v1/object/public/video-covers/a1b2.jpg"));
+  assert.equal(safeThumb("https://abcdefg.supabase.co/storage/v1/object/public/testimonial-private/a1b2.jpg"), null);
   assert.equal(safeThumb("https://evil.com/i.ytimg.com/x.jpg"), null);
   assert.equal(safeThumb("http://i.ytimg.com/x.jpg"), null);
   assert.ok(VIDEO_TYPES.length >= 4);

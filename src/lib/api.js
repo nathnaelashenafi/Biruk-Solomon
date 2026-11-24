@@ -70,7 +70,7 @@ export const publicImageUrl = (path) =>
 // Reads the public view, which only contains the fields shown on the website.
 export async function fetchVideos() {
   const cols =
-    "id,provider,video_id,title,studio,category,thumbnail_url,orientation";
+    "id,provider,video_id,title,studio,category,thumbnail_url,orientation,source_url";
   const rows = await request(
     `${BASE}/rest/v1/public_videos?select=${cols}&order=created_at.desc&limit=60`,
   );
@@ -81,6 +81,7 @@ export async function fetchVideos() {
     category: r.category,
     orientation: r.orientation,
     thumb: r.thumbnail_url,
-    video: { provider: r.provider, id: r.video_id },
+    sourceUrl: r.source_url,
+    video: { provider: r.provider, id: r.video_id, url: r.source_url },
   }));
 }

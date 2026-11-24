@@ -166,3 +166,14 @@ already accepted by Resend is not resent for the same inquiry.
 Videos are stored in `portfolio_videos` and read through the public `public_videos` view. In
 Telegram, use **/menu** -> **Add Video** or **Manage Videos**. Only public/unlisted YouTube videos
 and public Vimeo videos are supported; thumbnails are selected from YouTube/Vimeo image hosts.
+
+### TikTok and Instagram videos
+In the bot, **Add Video** also accepts TikTok and Instagram links (short TikTok links such as vm.tiktok.com work too).
+- **TikTok**: the bot reads the caption as the suggested title and keeps its own copy of the cover (TikTok's picture links expire).
+  If it cannot get the cover, it asks you to send a picture.
+- **Instagram**: Instagram shares no title or cover without a Meta-approved app, so you type the title and send a cover
+  picture in the chat (a screenshot works). The bot cannot check Instagram links, so make sure the post is public.
+- On the site both play inside the popup, with an **Open on TikTok / Instagram** button under the video, because
+  embedded players can be blocked by some browsers or privacy settings.
+- Covers are stored in the public `video-covers` bucket and are deleted again when you remove the video.
+After pulling this update: `npx supabase db push`, then `npx supabase functions deploy --no-verify-jwt`.
